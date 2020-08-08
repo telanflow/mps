@@ -71,9 +71,9 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 }
 
 func (tunnel *TunnelHandler) ConnectDial(network, addr string) (net.Conn, error) {
-	//if tunnel.Ctx.Transport != nil && tunnel.Ctx.Transport.Dial != nil {
-	//	return tunnel.Ctx.Transport.Dial(network, addr)
-	//}
+	if tunnel.Ctx.Transport != nil && tunnel.Ctx.Transport.DialContext != nil {
+		return tunnel.Ctx.Transport.DialContext(tunnel.Context(), network, addr)
+	}
 	return net.Dial(network, addr)
 }
 
