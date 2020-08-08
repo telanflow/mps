@@ -2,6 +2,12 @@ package mps
 
 import "net/http"
 
-type Middleware func(req *http.Request, resp *http.Response)
+type Middleware interface {
+	Handle(req *http.Request, ctx *Context) (*http.Response, error)
+}
 
-type a http.HandlerFunc
+type MiddlewareFunc func(req *http.Request, ctx *Context) (*http.Response, error)
+
+func (f MiddlewareFunc) Handle(req *http.Request, ctx *Context) (*http.Response, error) {
+	return f(req, ctx)
+}
