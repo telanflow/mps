@@ -1,12 +1,12 @@
 <h1 align="center">
-  <img src="https://github.com/telanflow/mps/raw/dev/res/logo.png" alt="MPS" width="200">
   <br>MPS<br>
 </h1>
 
+[English](README_ZH.md) | 🇨🇳中文
+
+## 📖 介绍
 MPS 是一个中间代理服务扩展库。
 它支持 HTTP、HTTPS、Websocket、正向代理、反向代理、中间人等代理方式
-
-[English](README_ZH.md) | 🇨🇳中文
 
 ## 🚀 特性
 

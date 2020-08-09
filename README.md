@@ -1,12 +1,12 @@
 <h1 align="center">
-  <img src="https://github.com/telanflow/mps/raw/dev/res/logo.png" alt="MPS" width="200">
   <br>MPS<br>
 </h1>
 
+English | [🇨🇳中文](README_ZH.md)
+
+## 📖 Introduction
 MPS (middle-proxy-server) is an intermediate proxy service library. 
 It support HTTP, HTTPS, Websocket, ForwardProxy, ReverseProxy, MitmProxy
-
-English | [🇨🇳中文](README_ZH.md)
 
 ## 🚀 Features
 
