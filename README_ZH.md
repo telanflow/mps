@@ -2,7 +2,7 @@
   <br>MPS<br>
 </h1>
 
-[English](README_ZH.md) | 🇨🇳中文
+[English](README.md) | 🇨🇳中文
 
 ## 📖 介绍
 MPS 是一个中间代理服务扩展库。
