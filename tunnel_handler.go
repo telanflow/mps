@@ -50,9 +50,6 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			targetAddr = hostAndPort(u.Host)
 			isProxy = true
 		}
-
-	} else {
-		_, _ = proxyClient.Write(HttpTunnelOk)
 	}
 
 	// connect to targetAddr
@@ -65,6 +62,8 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	// The cascade proxy needs to forward the request
 	if isProxy {
 		_ = req.Write(targetConn)
+	} else {
+		_, _ = proxyClient.Write(HttpTunnelOk)
 	}
 
 	go func() {
