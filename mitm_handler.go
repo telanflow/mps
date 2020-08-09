@@ -31,10 +31,9 @@ var (
 )
 
 type MitmHandler struct {
+	Ctx         *Context
 	Certificate tls.Certificate
-	Ctx *Context
-
-	TLSConfig     *tls.Config
+	// CertContainer is certificate storage container
 	CertContainer cert.Container
 }
 
@@ -42,13 +41,21 @@ func NewMitmHandler() *MitmHandler {
 	return &MitmHandler{
 		Ctx: NewContext(),
 		// default MPS Certificate
-		Certificate: cert.DefaultCertificate,
-		TLSConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-		// Certificate cache storage container
+		Certificate:   cert.DefaultCertificate,
 		CertContainer: cert.NewMemProvider(),
 	}
+}
+
+func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
+	certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &MitmHandler{
+		Ctx:           NewContext(),
+		Certificate:   certificate,
+		CertContainer: cert.NewMemProvider(),
+	}, nil
 }
 
 func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -173,10 +180,11 @@ func (mitm *MitmHandler) TLSConfigFromCA(host string) (*tls.Config, error) {
 
 	// Returned existing certificate for the host
 	crt, err := mitm.CertContainer.Get(host)
-	if err == nil {
-		config := cloneTLSConfig(mitm.TLSConfig)
-		config.Certificates = append(config.Certificates, *crt)
-		return config, nil
+	if err == nil && crt != nil {
+		return &tls.Config{
+			InsecureSkipVerify: true,
+			Certificates:       []tls.Certificate{*crt},
+		}, nil
 	}
 
 	// Issue a certificate for host
@@ -189,10 +197,10 @@ func (mitm *MitmHandler) TLSConfigFromCA(host string) (*tls.Config, error) {
 	// Set certificate to container
 	mitm.CertContainer.Set(host, crt)
 
-	config := &tls.Config{
-		Certificates: []tls.Certificate{*crt},
-	}
-	return config, nil
+	return &tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{*crt},
+	}, nil
 }
 
 func signHost(ca tls.Certificate, hosts []string) (cert *tls.Certificate, err error) {
@@ -286,7 +294,9 @@ func hashHosts(lst []string) []byte {
 // client or server.
 func cloneTLSConfig(cfg *tls.Config) *tls.Config {
 	if cfg == nil {
-		return &tls.Config{}
+		return &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
 	return cfg.Clone()
 }

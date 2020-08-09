@@ -2,6 +2,7 @@ package mps
 
 import "net/http"
 
+// ReverseHandler is a reverse proxy server implementation
 type ReverseHandler struct {
 	Ctx *Context
 }

@@ -3,13 +3,24 @@ package mps
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
+	"time"
 )
 
+// Context for the request
+// which contains Middleware, Transport, and other values
 type Context struct {
+	// context.Context
 	Context context.Context
-	Request   *http.Request
-	Response  *http.Response
+
+	// Request context-dependent requests
+	Request *http.Request
+
+	// Response is associated with Request
+	Response *http.Response
+
+	// Transport is used for global HTTP requests, and it will be reused.
 	Transport *http.Transport
 
 	// In some cases it is not always necessary to remove the Proxy Header.
@@ -20,7 +31,10 @@ type Context struct {
 	// present in the http.Response before proxying
 	KeepDestinationHeaders bool
 
-	// requests Middleware
+	// middlewares ACTS on Request and Response.
+	// It's going to be reused by the Context
+	// mi is the index subscript of the middlewares traversal
+	// the default value for the index is -1
 	mi          int
 	middlewares []Middleware
 }
@@ -29,25 +43,25 @@ func NewContext() *Context {
 	return &Context{
 		Context: context.Background(),
 		Transport: &http.Transport{
-			//DialContext: (&net.Dialer{
-			//	Timeout:   15 * time.Second,
-			//	KeepAlive: 30 * time.Second,
-			//	DualStack: true,
-			//}).DialContext,
-			////ForceAttemptHTTP2:     true,
-			//MaxIdleConns:          100,
-			//IdleConnTimeout:       90 * time.Second,
-			//TLSHandshakeTimeout:   10 * time.Second,
-			//ExpectContinueTimeout: 1 * time.Second,
+			DialContext: (&net.Dialer{
+				Timeout:   15 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 			Proxy:                 http.ProxyFromEnvironment,
 		},
-		Request:     nil,
-		Response:    nil,
-		KeepHeader: false,
+		Request:                nil,
+		Response:               nil,
+		KeepHeader:             false,
 		KeepDestinationHeaders: false,
-		mi:          -1,
-		middlewares: make([]Middleware, 0),
+		mi:                     -1,
+		middlewares:            make([]Middleware, 0),
 	}
 }
 
@@ -88,7 +102,7 @@ func (ctx *Context) Next(req *http.Request) (*http.Response, error) {
 
 func (ctx *Context) Copy() *Context {
 	return &Context{
-		Context: context.Background(),
+		Context:                context.Background(),
 		Request:                nil,
 		Response:               nil,
 		KeepHeader:             false,

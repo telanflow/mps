@@ -12,14 +12,13 @@ import (
 func TestNewTunnelHandler(t *testing.T) {
 	tunnel := NewTunnelHandler()
 	//tunnel.Transport().Proxy = func(r *http.Request) (*url.URL, error) {
-	//	//return url.Parse("http://59.58.58.92:4235")
+	//	//return url.Parse("http://121.56.39.197:4283")
 	//	return url.Parse("http://127.0.0.1:7890")
 	//}
-	tunnel.Transport().Dial = nil
 	tunnelSrv := httptest.NewServer(tunnel)
 	defer tunnelSrv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, "http://httpbin.org/get", nil)
+	req, _ := http.NewRequest(http.MethodGet, "https://httpbin.org/get", nil)
 	http.DefaultClient.Transport = &http.Transport{
 		Proxy: func(r *http.Request) (*url.URL, error) {
 			return url.Parse(tunnelSrv.URL)

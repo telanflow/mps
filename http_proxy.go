@@ -22,9 +22,9 @@ func NewHttpProxy() *HttpProxy {
 	ctx := NewContext()
 
 	return &HttpProxy{
-		Ctx:    ctx,
+		Ctx: ctx,
 		// default HTTP proxy
-		HttpHandler:  &ForwardHandler{Ctx: ctx},
+		HttpHandler: &ForwardHandler{Ctx: ctx},
 		// default HTTPS proxy
 		HttpsHandler: &TunnelHandler{Ctx: ctx},
 	}
@@ -43,6 +43,14 @@ func (proxy *HttpProxy) Use(middleware ...Middleware) {
 
 func (proxy *HttpProxy) UseFunc(fus ...MiddlewareFunc) {
 	proxy.Ctx.UseFunc(fus...)
+}
+
+func (proxy *HttpProxy) OnRequest(filter ...Filter) *ReqCondition {
+	return &ReqCondition{proxy: proxy, filters: filter}
+}
+
+func (proxy *HttpProxy) OnResponse(filter ...Filter) *RespCondition {
+	return &RespCondition{proxy: proxy, filters: filter}
 }
 
 func hijacker(rw http.ResponseWriter) (conn net.Conn, err error) {
