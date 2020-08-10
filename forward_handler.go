@@ -19,7 +19,7 @@ func NewForwardHandler() *ForwardHandler {
 	}
 }
 
-//
+// Create a ForwardHandler with Context
 func NewForwardHandlerWithContext(ctx *Context) *ForwardHandler {
 	return &ForwardHandler{
 		Ctx: ctx,
@@ -49,7 +49,7 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 		http.Error(rw, err.Error(), 502)
 		return
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// http.ResponseWriter will take care of filling the correct response length
 	// Setting it now, might impose wrong value, contradicting the actual new
@@ -66,7 +66,7 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 
 	body := ioutil.NopCloser(bytes.NewReader(bodyRes))
 	_, err = io.Copy(rw, body)
-	body.Close()
+	_ = body.Close()
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
 		return

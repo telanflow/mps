@@ -19,14 +19,9 @@ func TestNewTunnelHandler(t *testing.T) {
 	tunnelSrv := httptest.NewServer(tunnel)
 	defer tunnelSrv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
-	http.DefaultClient.Transport = &http.Transport{
-		Proxy: func(r *http.Request) (*url.URL, error) {
-			return url.Parse(tunnelSrv.URL)
-		},
-	}
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := HttpGet(srv.URL, func(r *http.Request) (*url.URL, error) {
+		return url.Parse(tunnelSrv.URL)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

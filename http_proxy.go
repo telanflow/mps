@@ -3,6 +3,7 @@ package mps
 import (
 	"errors"
 	"fmt"
+	"github.com/telanflow/mps/pool"
 	"net"
 	"net/http"
 )
@@ -19,20 +20,24 @@ type HttpProxy struct {
 	ReverseHandler http.Handler
 
 	Ctx *Context
+
+	ConnContainer pool.ConnContainer
 }
 
 func NewHttpProxy() *HttpProxy {
 	// default Context with Proxy
 	ctx := NewContext()
-
+	// conn pool
+	connPool := pool.NewConnProvider(pool.DefaultConnOptions)
 	return &HttpProxy{
 		Ctx: ctx,
 		// default HTTP proxy
 		HttpHandler: &ForwardHandler{Ctx: ctx},
 		// default HTTPS proxy
-		HttpsHandler: &TunnelHandler{Ctx: ctx},
+		HttpsHandler: &TunnelHandler{Ctx: ctx, ConnContainer: connPool},
 		// default Reverse proxy
 		ReverseHandler: &ReverseHandler{Ctx: ctx},
+		ConnContainer: connPool,
 	}
 }
 

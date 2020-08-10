@@ -2,6 +2,7 @@ package mps
 
 import (
 	"context"
+	"github.com/telanflow/mps/pool"
 	"io"
 	"net"
 	"net/http"
@@ -18,12 +19,14 @@ var (
 // The tunnel proxy type. Implements http.Handler.
 type TunnelHandler struct {
 	Ctx *Context
+	ConnContainer pool.ConnContainer
 }
 
 // Create a tunnel handler
 func NewTunnelHandler() *TunnelHandler {
 	return &TunnelHandler{
 		Ctx: NewContext(),
+		ConnContainer: pool.NewConnProvider(pool.DefaultConnOptions),
 	}
 }
 
@@ -56,10 +59,14 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	// connect to targetAddr
-	targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
+	targetConn, err = tunnel.ConnContainer.Get(targetAddr)
 	if err != nil {
-		ConnError(proxyClient)
-		return
+		targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
+		if err != nil {
+			ConnError(proxyClient)
+			return
+		}
+		defer tunnel.ConnContainer.Put(targetConn)
 	}
 
 	// The cascade proxy needs to forward the request
@@ -74,7 +81,6 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	go func() {
 		buf := make([]byte, 2048)
 		_, _ = io.CopyBuffer(targetConn, proxyClient, buf)
-		targetConn.Close()
 		proxyClient.Close()
 	}()
 	buf := make([]byte, 2048)
