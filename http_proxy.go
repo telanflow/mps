@@ -7,12 +7,16 @@ import (
 	"net/http"
 )
 
+// The basic proxy type. Implements http.Handler.
 type HttpProxy struct {
 	// HTTPS requests use the TunnelHandler proxy by default
 	HttpsHandler http.Handler
 
 	// HTTP requests use the ForwardHandler proxy by default
 	HttpHandler http.Handler
+
+	// HTTP requests use the ReverseHandler proxy by default
+	ReverseHandler http.Handler
 
 	Ctx *Context
 }
@@ -27,32 +31,50 @@ func NewHttpProxy() *HttpProxy {
 		HttpHandler: &ForwardHandler{Ctx: ctx},
 		// default HTTPS proxy
 		HttpsHandler: &TunnelHandler{Ctx: ctx},
+		// default Reverse proxy
+		ReverseHandler: &ReverseHandler{Ctx: ctx},
 	}
 }
 
+// Standard net/http function.
 func (proxy *HttpProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodConnect {
 		proxy.HttpsHandler.ServeHTTP(rw, req)
 	}
-	proxy.HttpHandler.ServeHTTP(rw, req)
+
+	if !req.URL.IsAbs() {
+		proxy.ReverseHandler.ServeHTTP(rw, req)
+	} else {
+		proxy.HttpHandler.ServeHTTP(rw, req)
+	}
 }
 
+// Use registers an Middleware to proxy
 func (proxy *HttpProxy) Use(middleware ...Middleware) {
 	proxy.Ctx.Use(middleware...)
 }
 
+// UseFunc registers an MiddlewareFunc to proxy
 func (proxy *HttpProxy) UseFunc(fus ...MiddlewareFunc) {
 	proxy.Ctx.UseFunc(fus...)
 }
 
-func (proxy *HttpProxy) OnRequest(filter ...Filter) *ReqCondition {
-	return &ReqCondition{proxy: proxy, filters: filter}
+// OnRequest filter requests through Filters
+func (proxy *HttpProxy) OnRequest(filters ...Filter) *ReqCondition {
+	return &ReqCondition{ctx: proxy.Ctx, filters: filters}
 }
 
-func (proxy *HttpProxy) OnResponse(filter ...Filter) *RespCondition {
-	return &RespCondition{proxy: proxy, filters: filter}
+// OnResponse filter response through Filters
+func (proxy *HttpProxy) OnResponse(filters ...Filter) *RespCondition {
+	return &RespCondition{ctx: proxy.Ctx, filters: filters}
 }
 
+// Transport get http.Transport instance
+func (proxy *HttpProxy) Transport() *http.Transport {
+	return proxy.Ctx.Transport
+}
+
+// hijacker an HTTP handler to take over the connection.
 func hijacker(rw http.ResponseWriter) (conn net.Conn, err error) {
 	hij, ok := rw.(http.Hijacker)
 	if !ok {
@@ -77,9 +99,6 @@ func removeProxyHeaders(r *http.Request) {
 	// If no Accept-Encoding header exists, Transport will add the headers it can accept
 	// and would wrap the response body with the relevant reader.
 	r.Header.Del("Accept-Encoding")
-	// curl can add that, see
-	// https://jdebp.eu./FGA/web-proxy-connection-header.html
-
 	// RFC 2616 (section 13.5.1)
 	// https://www.ietf.org/rfc/rfc2616.txt
 	r.Header.Del("Proxy-Connection")

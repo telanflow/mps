@@ -30,6 +30,7 @@ var (
 	httpsRegexp = regexp.MustCompile("^https://")
 )
 
+// The Man-in-the-middle proxy type. Implements http.Handler.
 type MitmHandler struct {
 	Ctx         *Context
 	Certificate tls.Certificate
@@ -37,15 +38,16 @@ type MitmHandler struct {
 	CertContainer cert.Container
 }
 
+// Create a MitmHandler, use default cert.
 func NewMitmHandler() *MitmHandler {
 	return &MitmHandler{
-		Ctx: NewContext(),
-		// default MPS Certificate
+		Ctx:           NewContext(),
 		Certificate:   cert.DefaultCertificate,
 		CertContainer: cert.NewMemProvider(),
 	}
 }
 
+// Create a MitmHandler with cert file
 func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
 	certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -58,6 +60,7 @@ func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
 	}, nil
 }
 
+// Standard net/http function. You can use it alone
 func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// get hijacker connection
 	proxyClient, err := hijacker(w)
@@ -171,7 +174,6 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-
 	}()
 }
 
@@ -232,18 +234,14 @@ func signHost(ca tls.Certificate, hosts []string) (cert *tls.Certificate, err er
 
 	// certificate template
 	tpl := x509.Certificate{
-		// SerialNumber 是 CA 颁布的唯一序列号，在此使用一个大随机数来代表它
 		SerialNumber: big.NewInt(rand.Int63()),
 		Issuer:       x509ca.Subject,
-		// pkix.Name代表一个X.509识别名。只包含识别名的公共属性，额外的属性被忽略。
 		Subject: pkix.Name{
 			Organization: []string{"MPS untrusted MITM proxy Inc"},
 		},
-		NotBefore: time.Unix(0, 0),
-		NotAfter:  time.Now().AddDate(20, 0, 0),
-		// KeyUsage 与 ExtKeyUsage 用来表明该证书是用来做服务器认证的
-		KeyUsage: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		// 密钥扩展用途的序列
+		NotBefore:             time.Unix(0, 0),
+		NotAfter:              time.Now().AddDate(20, 0, 0),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 		EmailAddresses:        x509ca.EmailAddresses,

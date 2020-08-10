@@ -85,8 +85,8 @@ func (ctx *Context) UseFunc(fns ...MiddlewareFunc) {
 
 func (ctx *Context) Next(req *http.Request) (*http.Response, error) {
 	var (
-		err   error
 		total = len(ctx.middlewares)
+		err   error
 	)
 	ctx.mi++
 	if ctx.mi >= total {

@@ -5,7 +5,7 @@ import (
 )
 
 type RespCondition struct {
-	proxy   *HttpProxy
+	ctx     *Context
 	filters []Filter
 }
 
@@ -14,7 +14,7 @@ func (cond *RespCondition) DoFunc(fn func(resp *http.Response) (*http.Response, 
 }
 
 func (cond *RespCondition) Do(fn ResponseHandle) {
-	cond.proxy.Ctx.UseFunc(func(req *http.Request, ctx *Context) (*http.Response, error) {
+	cond.ctx.UseFunc(func(req *http.Request, ctx *Context) (*http.Response, error) {
 		total := len(cond.filters)
 		for i := 0; i < total; i++ {
 			if !cond.filters[i].Match(req) {

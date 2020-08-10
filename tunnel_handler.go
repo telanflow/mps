@@ -15,16 +15,19 @@ var (
 	hasPort        = regexp.MustCompile(`:\d+$`)
 )
 
+// The tunnel proxy type. Implements http.Handler.
 type TunnelHandler struct {
 	Ctx *Context
 }
 
+// Create a tunnel handler
 func NewTunnelHandler() *TunnelHandler {
 	return &TunnelHandler{
 		Ctx: NewContext(),
 	}
 }
 
+// Standard net/http function. You can use it alone
 func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// hijacker connection
 	proxyClient, err := hijacker(rw)
@@ -34,10 +37,10 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	var (
-		u          *url.URL = nil
-		targetConn net.Conn = nil
-		targetAddr          = hostAndPort(req.URL.Host)
-		isProxy             = false
+		u              *url.URL = nil
+		targetConn     net.Conn = nil
+		targetAddr              = hostAndPort(req.URL.Host)
+		isCascadeProxy          = false
 	)
 	if tunnel.Ctx.Transport != nil && tunnel.Ctx.Transport.Proxy != nil {
 		u, err = tunnel.Ctx.Transport.Proxy(req)
@@ -48,7 +51,7 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		if u != nil {
 			// connect addr eg. "localhost:80"
 			targetAddr = hostAndPort(u.Host)
-			isProxy = true
+			isCascadeProxy = true
 		}
 	}
 
@@ -60,9 +63,11 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	// The cascade proxy needs to forward the request
-	if isProxy {
+	if isCascadeProxy {
+		// The cascading agent needs to send it as-is
 		_ = req.Write(targetConn)
 	} else {
+		// Tell the client that the tunnel is ready
 		_, _ = proxyClient.Write(HttpTunnelOk)
 	}
 

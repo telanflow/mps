@@ -1,8 +1,7 @@
 package mps
 
 import (
-	"io/ioutil"
-	"log"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,15 +9,17 @@ import (
 )
 
 func TestNewTunnelHandler(t *testing.T) {
+	srv := NewTestServer()
+	defer srv.Close()
+
 	tunnel := NewTunnelHandler()
 	//tunnel.Transport().Proxy = func(r *http.Request) (*url.URL, error) {
-	//	//return url.Parse("http://121.56.39.197:4283")
 	//	return url.Parse("http://127.0.0.1:7890")
 	//}
 	tunnelSrv := httptest.NewServer(tunnel)
 	defer tunnelSrv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, "https://httpbin.org/get", nil)
+	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	http.DefaultClient.Transport = &http.Transport{
 		Proxy: func(r *http.Request) (*url.URL, error) {
 			return url.Parse(tunnelSrv.URL)
@@ -29,11 +30,8 @@ func TestNewTunnelHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	log.Println(err)
-	log.Println(resp.Status)
-	log.Println(string(body))
+	asserts := assert.New(t)
+	asserts.Equal(resp.StatusCode, 200)
 }

@@ -17,9 +17,15 @@ func NewTestServer() *httptest.Server {
 	}))
 }
 
-func TestNewHttpProxy(t *testing.T) {
-	asserts := assert.New(t)
+func HttpGet(rawurl string, proxy func(r *http.Request) (*url.URL, error)) (*http.Response, error) {
+	req, _ := http.NewRequest(http.MethodGet, rawurl, nil)
+	http.DefaultClient.Transport = &http.Transport{
+		Proxy: proxy,
+	}
+	return http.DefaultClient.Do(req)
+}
 
+func TestNewHttpProxy(t *testing.T) {
 	srv := NewTestServer()
 	defer srv.Close()
 
@@ -27,48 +33,49 @@ func TestNewHttpProxy(t *testing.T) {
 	proxySrv := httptest.NewServer(proxy)
 	defer proxySrv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
-	http.DefaultClient.Transport = &http.Transport{
-		Proxy: func(r *http.Request) (*url.URL, error) {
-			return url.Parse(srv.URL)
-		},
+	resp, err := HttpGet(srv.URL, func(r *http.Request) (*url.URL, error) {
+		return url.Parse(proxySrv.URL)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	resp, err := http.DefaultClient.Do(req)
-	asserts.Equal(err, nil, "err should be equal nil")
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 
+	asserts := assert.New(t)
 	asserts.Equal(resp.StatusCode, 200, "statusCode should be equal 200")
 	asserts.Equal(int64(len(body)), resp.ContentLength)
 }
 
 func TestMiddlewareFunc(t *testing.T) {
+	// target server
+	srv := NewTestServer()
+	defer srv.Close()
+
+	// proxy server
 	proxy := NewHttpProxy()
+	// use Middleware
 	proxy.UseFunc(func(req *http.Request, ctx *Context) (*http.Response, error) {
 		log.Println(req.URL.String())
 		return ctx.Next(req)
 	})
-	srv := httptest.NewServer(proxy)
-	defer srv.Close()
+	proxySrv := httptest.NewServer(proxy)
+	defer proxySrv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, "https://httpbin.org/get", nil)
-	http.DefaultClient.Transport = &http.Transport{
-		Proxy: func(r *http.Request) (*url.URL, error) {
-			return url.Parse(srv.URL)
-		},
-	}
-
-	resp, err := http.DefaultClient.Do(req)
+	// send request
+	resp, err := HttpGet(srv.URL, func(r *http.Request) (*url.URL, error) {
+		return url.Parse(proxySrv.URL)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
-	log.Println(err)
-	log.Println(resp.Status)
+	asserts := assert.New(t)
+	asserts.Equal(resp.StatusCode, 200)
+	asserts.Equal(int64(len(body)), resp.ContentLength)
 	log.Println(string(body))
 }
