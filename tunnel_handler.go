@@ -33,6 +33,15 @@ func NewTunnelHandler() *TunnelHandler {
 	}
 }
 
+// Create a tunnel handler with Context
+func NewTunnelHandlerWithContext(ctx *Context) *TunnelHandler {
+	return &TunnelHandler{
+		Ctx:           ctx,
+		BufferPool:    pool.DefaultBuffer,
+		ConnContainer: pool.NewConnProvider(pool.DefaultConnOptions),
+	}
+}
+
 // Standard net/http function. You can use it alone
 func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// hijacker connection
@@ -94,14 +103,14 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	go func() {
-		buf := tunnel.BufferPool.Get()
+		buf := tunnel.buffer().Get()
 		_, _ = io.CopyBuffer(targetConn, proxyClient, buf)
-		tunnel.BufferPool.Put(buf)
+		tunnel.buffer().Put(buf)
 		_ = proxyClient.Close()
 	}()
-	buf := tunnel.BufferPool.Get()
+	buf := tunnel.buffer().Get()
 	_, _ = io.CopyBuffer(proxyClient, targetConn, buf)
-	tunnel.BufferPool.Put(buf)
+	tunnel.buffer().Put(buf)
 }
 
 func (tunnel *TunnelHandler) ConnectDial(network, addr string) (net.Conn, error) {
@@ -118,8 +127,17 @@ func (tunnel *TunnelHandler) Context() context.Context {
 	return context.Background()
 }
 
+// Transport
 func (tunnel *TunnelHandler) Transport() *http.Transport {
 	return tunnel.Ctx.Transport
+}
+
+// Get buffer pool
+func (tunnel *TunnelHandler) buffer() httputil.BufferPool {
+	if tunnel.BufferPool != nil {
+		return tunnel.BufferPool
+	}
+	return pool.DefaultBuffer
 }
 
 func hostAndPort(addr string) string {

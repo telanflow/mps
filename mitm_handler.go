@@ -59,6 +59,7 @@ func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
 	}
 	return &MitmHandler{
 		Ctx:           NewContext(),
+		BufferPool:    pool.DefaultBuffer,
 		Certificate:   certificate,
 		CertContainer: cert.NewMemProvider(),
 	}, nil
@@ -165,9 +166,9 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			chunked := newChunkedWriter(rawClientTls)
 
-			buf := mitm.BufferPool.Get()
+			buf := mitm.buffer().Get()
 			_, err = io.CopyBuffer(chunked, resp.Body, buf)
-			mitm.BufferPool.Put(buf)
+			mitm.buffer().Put(buf)
 			if err != nil {
 				//ctx.Warnf("Cannot write TLS response body from mitm'd client: %v", err)
 				return
@@ -182,6 +183,39 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+}
+
+// Use registers an Middleware to proxy
+func (mitm *MitmHandler) Use(middleware ...Middleware) {
+	mitm.Ctx.Use(middleware...)
+}
+
+// UseFunc registers an MiddlewareFunc to proxy
+func (mitm *MitmHandler) UseFunc(fus ...MiddlewareFunc) {
+	mitm.Ctx.UseFunc(fus...)
+}
+
+// OnRequest filter requests through Filters
+func (mitm *MitmHandler) OnRequest(filters ...Filter) *ReqCondition {
+	return &ReqCondition{ctx: mitm.Ctx, filters: filters}
+}
+
+// OnResponse filter response through Filters
+func (mitm *MitmHandler) OnResponse(filters ...Filter) *RespCondition {
+	return &RespCondition{ctx: mitm.Ctx, filters: filters}
+}
+
+// Get buffer pool
+func (mitm *MitmHandler) buffer() httputil.BufferPool {
+	if mitm.BufferPool != nil {
+		return mitm.BufferPool
+	}
+	return pool.DefaultBuffer
+}
+
+// Transport
+func (mitm *MitmHandler) Transport() *http.Transport {
+	return mitm.Ctx.Transport
 }
 
 func (mitm *MitmHandler) TLSConfigFromCA(host string) (*tls.Config, error) {

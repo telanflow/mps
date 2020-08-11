@@ -55,9 +55,9 @@ func (reverse *ReverseHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 	rw.WriteHeader(resp.StatusCode)
 
 	body := ioutil.NopCloser(bytes.NewReader(bodyRes))
-	buf := reverse.BufferPool.Get()
+	buf := reverse.buffer().Get()
 	_, err = io.CopyBuffer(rw, body, buf)
-	reverse.BufferPool.Put(buf)
+	reverse.buffer().Put(buf)
 	_ = body.Close()
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
@@ -83,4 +83,17 @@ func (reverse *ReverseHandler) OnRequest(filters ...Filter) *ReqCondition {
 // OnResponse filter response through Filters
 func (reverse *ReverseHandler) OnResponse(filters ...Filter) *RespCondition {
 	return &RespCondition{ctx: reverse.Ctx, filters: filters}
+}
+
+// Get buffer pool
+func (reverse *ReverseHandler) buffer() httputil.BufferPool {
+	if reverse.BufferPool != nil {
+		return reverse.BufferPool
+	}
+	return pool.DefaultBuffer
+}
+
+// Transport
+func (reverse *ReverseHandler) Transport() *http.Transport {
+	return reverse.Ctx.Transport
 }

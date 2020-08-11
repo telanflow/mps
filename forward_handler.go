@@ -27,6 +27,7 @@ func NewForwardHandler() *ForwardHandler {
 func NewForwardHandlerWithContext(ctx *Context) *ForwardHandler {
 	return &ForwardHandler{
 		Ctx: ctx,
+		BufferPool: pool.DefaultBuffer,
 	}
 }
 
@@ -69,9 +70,9 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 	rw.WriteHeader(resp.StatusCode)
 
 	body := ioutil.NopCloser(bytes.NewReader(bodyRes))
-	buf := forward.BufferPool.Get()
+	buf := forward.buffer().Get()
 	_, err = io.CopyBuffer(rw, body, buf)
-	forward.BufferPool.Put(buf)
+	forward.buffer().Put(buf)
 	_ = body.Close()
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
@@ -79,6 +80,15 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 	}
 }
 
+// Transport
 func (forward *ForwardHandler) Transport() *http.Transport {
 	return forward.Ctx.Transport
+}
+
+// Get buffer pool
+func (forward *ForwardHandler) buffer() httputil.BufferPool {
+	if forward.BufferPool != nil {
+		return forward.BufferPool
+	}
+	return pool.DefaultBuffer
 }
