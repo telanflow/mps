@@ -19,9 +19,9 @@ type ConnProvider struct {
 
 func NewConnProvider(opt *ConnOptions) *ConnProvider {
 	return &ConnProvider{
-		options: opt,
-		mu:      sync.RWMutex{},
-		idleConnMap: make(map[string] chan net.Conn),
+		options:     opt,
+		mu:          sync.RWMutex{},
+		idleConnMap: make(map[string]chan net.Conn),
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"regexp"
 )
@@ -18,14 +19,16 @@ var (
 
 // The tunnel proxy type. Implements http.Handler.
 type TunnelHandler struct {
-	Ctx *Context
+	Ctx           *Context
+	BufferPool    httputil.BufferPool
 	ConnContainer pool.ConnContainer
 }
 
 // Create a tunnel handler
 func NewTunnelHandler() *TunnelHandler {
 	return &TunnelHandler{
-		Ctx: NewContext(),
+		Ctx:           NewContext(),
+		BufferPool:    pool.DefaultBuffer,
 		ConnContainer: pool.NewConnProvider(pool.DefaultConnOptions),
 	}
 }
@@ -59,32 +62,46 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	// connect to targetAddr
-	targetConn, err = tunnel.ConnContainer.Get(targetAddr)
-	if err != nil {
-		targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
+	if tunnel.ConnContainer != nil {
+		targetConn, err = tunnel.ConnContainer.Get(targetAddr)
 		if err != nil {
-			ConnError(proxyClient)
-			return
+			targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
 		}
+	} else {
+		targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
+	}
+	if err != nil {
+		ConnError(proxyClient)
+		return
+	}
+
+	// If the ConnContainer is exists,
+	// When io.CopyBuffer is complete,
+	// put the idle connection into the ConnContainer so can reuse it next time
+	if tunnel.ConnContainer != nil {
 		defer tunnel.ConnContainer.Put(targetConn)
+	} else {
+		defer targetConn.Close()
 	}
 
 	// The cascade proxy needs to forward the request
 	if isCascadeProxy {
-		// The cascading agent needs to send it as-is
+		// The cascade proxy needs to send it as-is
 		_ = req.Write(targetConn)
 	} else {
-		// Tell the client that the tunnel is ready
+		// Tell client that the tunnel is ready
 		_, _ = proxyClient.Write(HttpTunnelOk)
 	}
 
 	go func() {
-		buf := make([]byte, 2048)
+		buf := tunnel.BufferPool.Get()
 		_, _ = io.CopyBuffer(targetConn, proxyClient, buf)
-		proxyClient.Close()
+		tunnel.BufferPool.Put(buf)
+		_ = proxyClient.Close()
 	}()
-	buf := make([]byte, 2048)
+	buf := tunnel.BufferPool.Get()
 	_, _ = io.CopyBuffer(proxyClient, targetConn, buf)
+	tunnel.BufferPool.Put(buf)
 }
 
 func (tunnel *TunnelHandler) ConnectDial(network, addr string) (net.Conn, error) {

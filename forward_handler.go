@@ -2,20 +2,24 @@ package mps
 
 import (
 	"bytes"
+	"github.com/telanflow/mps/pool"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 )
 
 // The forward proxy type. Implements http.Handler.
 type ForwardHandler struct {
-	Ctx *Context
+	Ctx        *Context
+	BufferPool httputil.BufferPool
 }
 
 // Create a ForwardHandler
 func NewForwardHandler() *ForwardHandler {
 	return &ForwardHandler{
-		Ctx: NewContext(),
+		Ctx:        NewContext(),
+		BufferPool: pool.DefaultBuffer,
 	}
 }
 
@@ -65,7 +69,9 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 	rw.WriteHeader(resp.StatusCode)
 
 	body := ioutil.NopCloser(bytes.NewReader(bodyRes))
-	_, err = io.Copy(rw, body)
+	buf := forward.BufferPool.Get()
+	_, err = io.CopyBuffer(rw, body, buf)
+	forward.BufferPool.Put(buf)
 	_ = body.Close()
 	if err != nil {
 		http.Error(rw, err.Error(), 502)

@@ -37,7 +37,7 @@ func NewHttpProxy() *HttpProxy {
 		HttpsHandler: &TunnelHandler{Ctx: ctx, ConnContainer: connPool},
 		// default Reverse proxy
 		ReverseHandler: &ReverseHandler{Ctx: ctx},
-		ConnContainer: connPool,
+		ConnContainer:  connPool,
 	}
 }
 

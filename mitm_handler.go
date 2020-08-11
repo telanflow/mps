@@ -12,11 +12,13 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"github.com/telanflow/mps/cert"
+	"github.com/telanflow/mps/pool"
 	"io"
 	"math/big"
 	"math/rand"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"regexp"
 	"sort"
@@ -33,6 +35,7 @@ var (
 // The Man-in-the-middle proxy type. Implements http.Handler.
 type MitmHandler struct {
 	Ctx         *Context
+	BufferPool  httputil.BufferPool
 	Certificate tls.Certificate
 	// CertContainer is certificate storage container
 	CertContainer cert.Container
@@ -42,6 +45,7 @@ type MitmHandler struct {
 func NewMitmHandler() *MitmHandler {
 	return &MitmHandler{
 		Ctx:           NewContext(),
+		BufferPool:    pool.DefaultBuffer,
 		Certificate:   cert.DefaultCertificate,
 		CertContainer: cert.NewMemProvider(),
 	}
@@ -160,7 +164,10 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			chunked := newChunkedWriter(rawClientTls)
-			_, err = io.Copy(chunked, resp.Body)
+
+			buf := mitm.BufferPool.Get()
+			_, err = io.CopyBuffer(chunked, resp.Body, buf)
+			mitm.BufferPool.Put(buf)
 			if err != nil {
 				//ctx.Warnf("Cannot write TLS response body from mitm'd client: %v", err)
 				return
