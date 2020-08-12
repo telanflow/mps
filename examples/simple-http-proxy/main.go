@@ -18,7 +18,7 @@ func main() {
 	// create a http proxy server
 	proxy := mps.NewHttpProxy()
 	proxy.UseFunc(func(req *http.Request, ctx *mps.Context) (*http.Response, error) {
-		log.Printf("[INFO] middleware -- %s", req.URL)
+		log.Printf("[INFO] middleware -- %s\n", req.URL)
 		return ctx.Next(req)
 	})
 

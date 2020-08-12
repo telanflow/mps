@@ -38,7 +38,7 @@ func main() {
 	}
 	go http.ListenAndServe("localhost:9992", proxy2)
 
-	// wait proxy server run
+	// wait proxy server started
 	time.Sleep(2 * time.Second)
 
 	// send request
