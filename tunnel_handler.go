@@ -96,7 +96,13 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	// If the ConnContainer is exists,
 	// When io.CopyBuffer is complete,
 	// put the idle connection into the ConnContainer so can reuse it next time
-	defer tunnel.connContainer().Put(targetConn)
+	defer func() {
+		err := tunnel.connContainer().Put(targetConn)
+		if err != nil {
+			// put conn fail, conn must be closed
+			_ = targetConn.Close()
+		}
+	}()
 
 	// The cascade proxy needs to forward the request
 	if isCascadeProxy {
@@ -118,6 +124,26 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	tunnel.buffer().Put(buf)
 }
 
+// Use registers an Middleware to proxy
+func (tunnel *TunnelHandler) Use(middleware ...Middleware) {
+	tunnel.Ctx.Use(middleware...)
+}
+
+// UseFunc registers an MiddlewareFunc to proxy
+func (tunnel *TunnelHandler) UseFunc(fus ...MiddlewareFunc) {
+	tunnel.Ctx.UseFunc(fus...)
+}
+
+// OnRequest filter requests through Filters
+func (tunnel *TunnelHandler) OnRequest(filters ...Filter) *ReqFilterGroup {
+	return &ReqFilterGroup{ctx: tunnel.Ctx, filters: filters}
+}
+
+// OnResponse filter response through Filters
+func (tunnel *TunnelHandler) OnResponse(filters ...Filter) *RespFilterGroup {
+	return &RespFilterGroup{ctx: tunnel.Ctx, filters: filters}
+}
+
 func (tunnel *TunnelHandler) ConnectDial(network, addr string) (net.Conn, error) {
 	if tunnel.Ctx.Transport != nil && tunnel.Ctx.Transport.DialContext != nil {
 		return tunnel.Ctx.Transport.DialContext(tunnel.context(), network, addr)
@@ -125,7 +151,7 @@ func (tunnel *TunnelHandler) ConnectDial(network, addr string) (net.Conn, error)
 	return net.DialTimeout(network, addr, 30*time.Second)
 }
 
-// Transport
+// Transport get http.Transport instance
 func (tunnel *TunnelHandler) Transport() *http.Transport {
 	return tunnel.Ctx.Transport
 }

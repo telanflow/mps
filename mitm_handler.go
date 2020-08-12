@@ -124,7 +124,6 @@ func (mitm *MitmHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				req.URL, err = url.Parse("https://" + r.Host + req.URL.String())
 			}
 			if err != nil {
-				//ctx.Warnf("Illegal URL %s", "https://"+r.Host+req.URL.Path)
 				return
 			}
 
@@ -145,7 +144,6 @@ func (mitm *MitmHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 			// always use 1.1 to support chunked encoding
 			if _, err := io.WriteString(rawClientTls, "HTTP/1.1"+" "+statusCode+status+"\r\n"); err != nil {
-				//ctx.Warnf("Cannot write TLS response HTTP status from mitm'd client: %v", err)
 				return
 			}
 

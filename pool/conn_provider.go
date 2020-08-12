@@ -63,8 +63,6 @@ RETRY:
 func (p *ConnProvider) Put(conn net.Conn) error {
 	closed := atomic.LoadInt32(&p.closed)
 	if closed == 1 {
-		// pool is closed, this conn must be closed
-		conn.Close()
 		return errors.New("pool is closed")
 	}
 
@@ -80,7 +78,6 @@ func (p *ConnProvider) Put(conn net.Conn) error {
 	// The timeout will be verified at the next `Get()`
 	err := conn.SetDeadline(time.Now().Add(p.options.Timeout))
 	if err != nil {
-		_ = conn.Close()
 		return err
 	}
 
@@ -88,8 +85,7 @@ func (p *ConnProvider) Put(conn net.Conn) error {
 	case p.idleConnMap[addr] <- conn:
 		return nil
 	default:
-		err := conn.Close()
-		return fmt.Errorf("beyond max capacity. conn closed: %v", err)
+		return fmt.Errorf("beyond max capacity")
 	}
 }
 
