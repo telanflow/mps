@@ -3,56 +3,54 @@ package main
 import (
 	"errors"
 	"github.com/telanflow/mps"
+	"github.com/telanflow/mps/middleware"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
-	"regexp"
 	"syscall"
 )
 
-// A simple http proxy server
+// A simple reverse proxy server
 func main() {
+	targetHost, _ := url.Parse("https://www.google.com")
 	quitSignChan := make(chan os.Signal)
 
-	// create a http proxy server
-	proxy := mps.NewHttpProxy()
-	proxy.UseFunc(func(req *http.Request, ctx *mps.Context) (*http.Response, error) {
-		log.Printf("[INFO] middleware -- %s\n", req.URL)
-		return ctx.Next(req)
-	})
+	// reverse proxy server
+	proxy := mps.NewReverseHandler()
+	proxy.UseFunc(middleware.SingleHostReverseProxy(targetHost))
 
-	reqGroup := proxy.OnRequest(mps.FilterHostMatches(regexp.MustCompile("^.*$")))
+	reqGroup := proxy.OnRequest()
 	reqGroup.DoFunc(func(req *http.Request, ctx *mps.Context) (*http.Request, *http.Response) {
-		log.Printf("[INFO] req -- %s\n", req.URL)
+		log.Printf("[INFO] req -- %s", req.Host)
 		return req, nil
 	})
 
 	respGroup := proxy.OnResponse()
 	respGroup.DoFunc(func(resp *http.Response, err error, ctx *mps.Context) (*http.Response, error) {
 		if err != nil {
-			log.Printf("[ERRO] resp -- %v\n", err)
-			return resp, err
+			log.Printf("[ERRO] resp -- %v", err)
+			return nil, err
 		}
-
-		log.Printf("[INFO] resp -- %d\n", resp.StatusCode)
+		log.Printf("[INFO] resp -- %d", resp.StatusCode)
 		return resp, err
 	})
 
-	// Start server
-	srv := &http.Server{
-		Addr:    "127.0.0.1:8081",
+	// started proxy server
+	srv := http.Server{
+		Addr:    "localhost:8080",
 		Handler: proxy,
 	}
 	go func() {
-		log.Printf("HttpProxy started listen: http://%s", srv.Addr)
+		log.Printf("ReverseProxy started listen: http://%s", srv.Addr)
 		err := srv.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
 			return
 		}
 		if err != nil {
 			quitSignChan <- syscall.SIGKILL
-			log.Fatalf("HttpProxy start fail: %v", err)
+			log.Fatalf("ReverseProxy start fail: %v", err)
 		}
 	}()
 
@@ -61,5 +59,5 @@ func main() {
 
 	<-quitSignChan
 	_ = srv.Close()
-	log.Fatal("HttpProxy server stop!")
+	log.Fatal("ReverseProxy server stop!")
 }

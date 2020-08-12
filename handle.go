@@ -15,13 +15,13 @@ func (f RequestHandleFunc) Handle(req *http.Request, ctx *Context) (*http.Reques
 }
 
 type ResponseHandle interface {
-	Handle(resp *http.Response, ctx *Context) (*http.Response, error)
+	Handle(resp *http.Response, err error, ctx *Context) (*http.Response, error)
 }
 
 // A wrapper that would convert a function to a ResponseHandle interface type
-type ResponseHandleFunc func(resp *http.Response, ctx *Context) (*http.Response, error)
+type ResponseHandleFunc func(resp *http.Response, err error, ctx *Context) (*http.Response, error)
 
 // ResponseHandle.Handle(resp, ctx) <=> ResponseHandleFunc(resp, ctx)
-func (f ResponseHandleFunc) Handle(resp *http.Response, ctx *Context) (*http.Response, error) {
-	return f(resp, ctx)
+func (f ResponseHandleFunc) Handle(resp *http.Response, err error, ctx *Context) (*http.Response, error) {
+	return f(resp, err, ctx)
 }

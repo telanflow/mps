@@ -9,7 +9,7 @@ type RespFilterGroup struct {
 	filters []Filter
 }
 
-func (cond *RespFilterGroup) DoFunc(fn func(resp *http.Response, ctx *Context) (*http.Response, error)) {
+func (cond *RespFilterGroup) DoFunc(fn func(resp *http.Response, err error, ctx *Context) (*http.Response, error)) {
 	cond.Do(ResponseHandleFunc(fn))
 }
 
@@ -21,12 +21,7 @@ func (cond *RespFilterGroup) Do(h ResponseHandle) {
 				return ctx.Next(req)
 			}
 		}
-
 		resp, err := ctx.Next(req)
-		if err != nil {
-			return nil, err
-		}
-
-		return h.Handle(resp, ctx)
+		return h.Handle(resp, err, ctx)
 	})
 }
