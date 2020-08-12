@@ -6,12 +6,15 @@ import (
 	"strings"
 )
 
+// Filter is an request interceptor
 type Filter interface {
 	Match(req *http.Request) bool
 }
 
+// A wrapper that would convert a function to a Filter interface type
 type FilterFunc func(req *http.Request) bool
 
+// Filter.Match(req) <=> FilterFunc(req)
 func (f FilterFunc) Match(req *http.Request) bool {
 	return f(req)
 }
