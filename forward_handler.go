@@ -26,7 +26,7 @@ func NewForwardHandler() *ForwardHandler {
 // Create a ForwardHandler with Context
 func NewForwardHandlerWithContext(ctx *Context) *ForwardHandler {
 	return &ForwardHandler{
-		Ctx: ctx,
+		Ctx:        ctx,
 		BufferPool: pool.DefaultBuffer,
 	}
 }
@@ -34,15 +34,7 @@ func NewForwardHandlerWithContext(ctx *Context) *ForwardHandler {
 // Standard net/http function. You can use it alone
 func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Copying a Context preserves the Transport, Middleware
-	ctx := forward.Ctx.Copy()
-	ctx.Request = req
-
-	// In some cases it is not always necessary to remove the Proxy Header.
-	// For example, cascade proxy
-	if !forward.Ctx.KeepHeader {
-		removeProxyHeaders(req)
-	}
-
+	ctx := forward.Ctx.WithRequest(req)
 	resp, err := ctx.Next(req)
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
@@ -78,6 +70,26 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 		http.Error(rw, err.Error(), 502)
 		return
 	}
+}
+
+// Use registers an Middleware to proxy
+func (forward *ForwardHandler) Use(middleware ...Middleware) {
+	forward.Ctx.Use(middleware...)
+}
+
+// UseFunc registers an MiddlewareFunc to proxy
+func (forward *ForwardHandler) UseFunc(fus ...MiddlewareFunc) {
+	forward.Ctx.UseFunc(fus...)
+}
+
+// OnRequest filter requests through Filters
+func (forward *ForwardHandler) OnRequest(filters ...Filter) *ReqFilterGroup {
+	return &ReqFilterGroup{ctx: forward.Ctx, filters: filters}
+}
+
+// OnResponse filter response through Filters
+func (forward *ForwardHandler) OnResponse(filters ...Filter) *RespFilterGroup {
+	return &RespFilterGroup{ctx: forward.Ctx, filters: filters}
 }
 
 // Transport

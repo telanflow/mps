@@ -21,7 +21,7 @@ type Middleware interface {
 // A wrapper that would convert a function to a Middleware interface type
 type MiddlewareFunc func(req *http.Request, ctx *Context) (*http.Response, error)
 
-// MiddlewareFunc.Handle(req, ctx) <=> MiddlewareFunc(req, ctx)
+// Middleware.Handle(req, ctx) <=> MiddlewareFunc(req, ctx)
 func (f MiddlewareFunc) Handle(req *http.Request, ctx *Context) (*http.Response, error) {
 	return f(req, ctx)
 }

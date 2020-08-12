@@ -13,9 +13,11 @@ It support HTTP, HTTPS, Websocket, ForwardProxy, ReverseProxy, MitmProxy
 - [X] Http Proxy
 - [X] Https Proxy
 - [X] Forward Proxy
+- [X] Reverse Proxy
 - [X] Tunnel Proxy
-- [ ] Reverse Proxy
+- [X] Mitm Proxy (Man-in-the-middle) 
 - [ ] WekSocket Proxy
+- [ ] Socks5 Proxy
 
 ## 🧰 Install
 

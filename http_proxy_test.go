@@ -1,9 +1,9 @@
 package mps
 
 import (
+	"bytes"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,8 +12,14 @@ import (
 
 func NewTestServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		query := req.URL.Query()
+		text := []byte("hello world")
+		if query.Get("text") != "" {
+			text = []byte(query.Get("text"))
+		}
+
 		rw.Header().Set("Server", "MPS proxy server")
-		rw.Write([]byte("hello world"))
+		_, _ = rw.Write(text)
 	}))
 }
 
@@ -57,8 +63,15 @@ func TestMiddlewareFunc(t *testing.T) {
 	proxy := NewHttpProxy()
 	// use Middleware
 	proxy.UseFunc(func(req *http.Request, ctx *Context) (*http.Response, error) {
-		log.Println(req.URL.String())
-		return ctx.Next(req)
+		resp, err := ctx.Next(req)
+		if err != nil {
+			return nil, err
+		}
+
+		var buf bytes.Buffer
+		buf.WriteString("middleware")
+		resp.Body = ioutil.NopCloser(&buf)
+		return resp, nil
 	})
 	proxySrv := httptest.NewServer(proxy)
 	defer proxySrv.Close()
@@ -77,5 +90,5 @@ func TestMiddlewareFunc(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.Equal(resp.StatusCode, 200)
 	asserts.Equal(int64(len(body)), resp.ContentLength)
-	log.Println(string(body))
+	asserts.Equal(string(body), "middleware")
 }

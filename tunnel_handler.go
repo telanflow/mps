@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"time"
 )
 
 var (
@@ -27,23 +28,35 @@ type TunnelHandler struct {
 // Create a tunnel handler
 func NewTunnelHandler() *TunnelHandler {
 	return &TunnelHandler{
-		Ctx:           NewContext(),
-		BufferPool:    pool.DefaultBuffer,
-		ConnContainer: pool.NewConnProvider(pool.DefaultConnOptions),
+		Ctx:        NewContext(),
+		BufferPool: pool.DefaultBuffer,
 	}
 }
 
 // Create a tunnel handler with Context
 func NewTunnelHandlerWithContext(ctx *Context) *TunnelHandler {
 	return &TunnelHandler{
-		Ctx:           ctx,
-		BufferPool:    pool.DefaultBuffer,
-		ConnContainer: pool.NewConnProvider(pool.DefaultConnOptions),
+		Ctx:        ctx,
+		BufferPool: pool.DefaultBuffer,
 	}
 }
 
 // Standard net/http function. You can use it alone
 func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Execution middleware
+	ctx := tunnel.Ctx.WithRequest(req)
+	resp, err := ctx.Next(req)
+	if err != nil && err != MethodNotSupportErr {
+		if resp != nil {
+			copyHeaders(rw.Header(), resp.Header, tunnel.Ctx.KeepDestinationHeaders)
+			rw.WriteHeader(resp.StatusCode)
+			buf := tunnel.buffer().Get()
+			_, err = io.CopyBuffer(rw, resp.Body, buf)
+			tunnel.buffer().Put(buf)
+		}
+		return
+	}
+
 	// hijacker connection
 	proxyClient, err := hijacker(rw)
 	if err != nil {
@@ -71,27 +84,19 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	// connect to targetAddr
-	if tunnel.ConnContainer != nil {
-		targetConn, err = tunnel.ConnContainer.Get(targetAddr)
-		if err != nil {
-			targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
-		}
-	} else {
-		targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
-	}
+	targetConn, err = tunnel.connContainer().Get(targetAddr)
 	if err != nil {
-		ConnError(proxyClient)
-		return
+		targetConn, err = tunnel.ConnectDial("tcp", targetAddr)
+		if err != nil {
+			ConnError(proxyClient)
+			return
+		}
 	}
 
 	// If the ConnContainer is exists,
 	// When io.CopyBuffer is complete,
 	// put the idle connection into the ConnContainer so can reuse it next time
-	if tunnel.ConnContainer != nil {
-		defer tunnel.ConnContainer.Put(targetConn)
-	} else {
-		defer targetConn.Close()
-	}
+	defer tunnel.connContainer().Put(targetConn)
 
 	// The cascade proxy needs to forward the request
 	if isCascadeProxy {
@@ -115,21 +120,22 @@ func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 func (tunnel *TunnelHandler) ConnectDial(network, addr string) (net.Conn, error) {
 	if tunnel.Ctx.Transport != nil && tunnel.Ctx.Transport.DialContext != nil {
-		return tunnel.Ctx.Transport.DialContext(tunnel.Context(), network, addr)
+		return tunnel.Ctx.Transport.DialContext(tunnel.context(), network, addr)
 	}
-	return net.Dial(network, addr)
-}
-
-func (tunnel *TunnelHandler) Context() context.Context {
-	if tunnel.Ctx.Context != nil {
-		return tunnel.Ctx.Context
-	}
-	return context.Background()
+	return net.DialTimeout(network, addr, 30*time.Second)
 }
 
 // Transport
 func (tunnel *TunnelHandler) Transport() *http.Transport {
 	return tunnel.Ctx.Transport
+}
+
+// get a context.Context
+func (tunnel *TunnelHandler) context() context.Context {
+	if tunnel.Ctx.Context != nil {
+		return tunnel.Ctx.Context
+	}
+	return context.Background()
 }
 
 // Get buffer pool
@@ -138,6 +144,14 @@ func (tunnel *TunnelHandler) buffer() httputil.BufferPool {
 		return tunnel.BufferPool
 	}
 	return pool.DefaultBuffer
+}
+
+// Get a conn pool
+func (tunnel *TunnelHandler) connContainer() pool.ConnContainer {
+	if tunnel.ConnContainer != nil {
+		return tunnel.ConnContainer
+	}
+	return pool.DefaultConnProvider
 }
 
 func hostAndPort(addr string) string {

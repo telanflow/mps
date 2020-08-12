@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var DefaultMemProvider = NewMemProvider()
+
 // MemProvider A simple in-memory certificate cache
 type MemProvider struct {
 	cache map[string]*tls.Certificate

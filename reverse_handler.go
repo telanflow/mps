@@ -15,6 +15,7 @@ type ReverseHandler struct {
 	BufferPool httputil.BufferPool
 }
 
+// Create a ReverseHandler
 func NewReverseHandler() *ReverseHandler {
 	return &ReverseHandler{
 		Ctx:        NewContext(),
@@ -25,9 +26,7 @@ func NewReverseHandler() *ReverseHandler {
 // Standard net/http function. You can use it alone
 func (reverse *ReverseHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Copying a Context preserves the Transport, Middleware
-	ctx := reverse.Ctx.Copy()
-	ctx.Request = req
-
+	ctx := reverse.Ctx.WithRequest(req)
 	resp, err := ctx.Next(req)
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
@@ -76,13 +75,13 @@ func (reverse *ReverseHandler) UseFunc(fus ...MiddlewareFunc) {
 }
 
 // OnRequest filter requests through Filters
-func (reverse *ReverseHandler) OnRequest(filters ...Filter) *ReqCondition {
-	return &ReqCondition{ctx: reverse.Ctx, filters: filters}
+func (reverse *ReverseHandler) OnRequest(filters ...Filter) *ReqFilterGroup {
+	return &ReqFilterGroup{ctx: reverse.Ctx, filters: filters}
 }
 
 // OnResponse filter response through Filters
-func (reverse *ReverseHandler) OnResponse(filters ...Filter) *RespCondition {
-	return &RespCondition{ctx: reverse.Ctx, filters: filters}
+func (reverse *ReverseHandler) OnResponse(filters ...Filter) *RespFilterGroup {
+	return &RespFilterGroup{ctx: reverse.Ctx, filters: filters}
 }
 
 // Get buffer pool

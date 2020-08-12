@@ -4,16 +4,17 @@ import (
 	"net/http"
 )
 
-type ReqCondition struct {
+// ReqCondition is a request condition group
+type ReqFilterGroup struct {
 	ctx     *Context
 	filters []Filter
 }
 
-func (cond *ReqCondition) DoFunc(fn func(req *http.Request) (*http.Request, *http.Response)) {
+func (cond *ReqFilterGroup) DoFunc(fn func(req *http.Request, ctx *Context) (*http.Request, *http.Response)) {
 	cond.Do(RequestHandleFunc(fn))
 }
 
-func (cond *ReqCondition) Do(fn RequestHandle) {
+func (cond *ReqFilterGroup) Do(h RequestHandle) {
 	cond.ctx.UseFunc(func(req *http.Request, ctx *Context) (*http.Response, error) {
 		total := len(cond.filters)
 		for i := 0; i < total; i++ {
@@ -22,7 +23,7 @@ func (cond *ReqCondition) Do(fn RequestHandle) {
 			}
 		}
 
-		req, resp := fn.Handle(req)
+		req, resp := h.Handle(req, ctx)
 		if resp != nil {
 			return resp, nil
 		}

@@ -66,11 +66,25 @@ func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
 }
 
 // Standard net/http function. You can use it alone
-func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (mitm *MitmHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	// Execution middleware
+	ctx := mitm.Ctx.WithRequest(r)
+	resp, err := ctx.Next(r)
+	if err != nil && err != MethodNotSupportErr {
+		if resp != nil {
+			copyHeaders(rw.Header(), resp.Header, mitm.Ctx.KeepDestinationHeaders)
+			rw.WriteHeader(resp.StatusCode)
+			buf := mitm.buffer().Get()
+			_, err = io.CopyBuffer(rw, resp.Body, buf)
+			mitm.buffer().Put(buf)
+		}
+		return
+	}
+
 	// get hijacker connection
-	proxyClient, err := hijacker(w)
+	proxyClient, err := hijacker(rw)
 	if err != nil {
-		http.Error(w, err.Error(), 502)
+		http.Error(rw, err.Error(), 502)
 		return
 	}
 
@@ -91,7 +105,7 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rawClientTls := tls.Server(proxyClient, tlsConfig)
 		if err := rawClientTls.Handshake(); err != nil {
 			ConnError(proxyClient)
-			//ctx.Warnf("Cannot handshake client %v %v", r.Host, err)
+			_ = rawClientTls.Close()
 			return
 		}
 		defer rawClientTls.Close()
@@ -100,7 +114,6 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for !isEof(clientTlsReader) {
 			req, err := http.ReadRequest(clientTlsReader)
 			if err != nil {
-				//ctx.Warnf("Cannot read TLS request from mitm'd client %v %v", r.Host, err)
 				break
 			}
 
@@ -115,23 +128,14 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Copying a Context preserves the Transport, Middleware
-			ctx := mitm.Ctx.Copy()
-			ctx.Request = req
-
-			// In some cases it is not always necessary to remove the Proxy Header.
-			// For example, cascade proxy
-			if !mitm.Ctx.KeepHeader {
-				removeProxyHeaders(req)
-			}
-
 			var resp *http.Response
+
+			// Copying a Context preserves the Transport, Middleware
+			ctx := mitm.Ctx.WithRequest(req)
 			resp, err = ctx.Next(req)
 			if err != nil {
-				//ctx.Warnf("Cannot read TLS response from mitm'd server %v", err)
 				return
 			}
-			defer resp.Body.Close()
 
 			status := resp.Status
 			statusCode := strconv.Itoa(resp.StatusCode) + " "
@@ -155,12 +159,12 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			err = resp.Header.Write(rawClientTls)
 			if err != nil {
-				//ctx.Warnf("Cannot write TLS response header from mitm'd client: %v", err)
+				resp.Body.Close()
 				return
 			}
 			_, err = io.WriteString(rawClientTls, "\r\n")
 			if err != nil {
-				//ctx.Warnf("Cannot write TLS response header end from mitm'd client: %v", err)
+				resp.Body.Close()
 				return
 			}
 
@@ -170,15 +174,17 @@ func (mitm *MitmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			_, err = io.CopyBuffer(chunked, resp.Body, buf)
 			mitm.buffer().Put(buf)
 			if err != nil {
-				//ctx.Warnf("Cannot write TLS response body from mitm'd client: %v", err)
+				resp.Body.Close()
 				return
 			}
+
+			// closed response body
+			resp.Body.Close()
+
 			if err := chunked.Close(); err != nil {
-				//ctx.Warnf("Cannot write TLS chunked EOF from mitm'd client: %v", err)
 				return
 			}
 			if _, err = io.WriteString(rawClientTls, "\r\n"); err != nil {
-				//ctx.Warnf("Cannot write TLS response chunked trailer from mitm'd client: %v", err)
 				return
 			}
 		}
@@ -196,13 +202,13 @@ func (mitm *MitmHandler) UseFunc(fus ...MiddlewareFunc) {
 }
 
 // OnRequest filter requests through Filters
-func (mitm *MitmHandler) OnRequest(filters ...Filter) *ReqCondition {
-	return &ReqCondition{ctx: mitm.Ctx, filters: filters}
+func (mitm *MitmHandler) OnRequest(filters ...Filter) *ReqFilterGroup {
+	return &ReqFilterGroup{ctx: mitm.Ctx, filters: filters}
 }
 
 // OnResponse filter response through Filters
-func (mitm *MitmHandler) OnResponse(filters ...Filter) *RespCondition {
-	return &RespCondition{ctx: mitm.Ctx, filters: filters}
+func (mitm *MitmHandler) OnResponse(filters ...Filter) *RespFilterGroup {
+	return &RespFilterGroup{ctx: mitm.Ctx, filters: filters}
 }
 
 // Get buffer pool
@@ -211,6 +217,14 @@ func (mitm *MitmHandler) buffer() httputil.BufferPool {
 		return mitm.BufferPool
 	}
 	return pool.DefaultBuffer
+}
+
+// Get cert.Container instance
+func (mitm *MitmHandler) certContainer() cert.Container {
+	if mitm.CertContainer != nil {
+		return mitm.CertContainer
+	}
+	return cert.DefaultMemProvider
 }
 
 // Transport
@@ -222,7 +236,7 @@ func (mitm *MitmHandler) TLSConfigFromCA(host string) (*tls.Config, error) {
 	host = stripPort(host)
 
 	// Returned existing certificate for the host
-	crt, err := mitm.CertContainer.Get(host)
+	crt, err := mitm.certContainer().Get(host)
 	if err == nil && crt != nil {
 		return &tls.Config{
 			InsecureSkipVerify: true,
@@ -238,7 +252,7 @@ func (mitm *MitmHandler) TLSConfigFromCA(host string) (*tls.Config, error) {
 	}
 
 	// Set certificate to container
-	mitm.CertContainer.Set(host, crt)
+	_ = mitm.certContainer().Set(host, crt)
 
 	return &tls.Config{
 		InsecureSkipVerify: true,
@@ -246,6 +260,7 @@ func (mitm *MitmHandler) TLSConfigFromCA(host string) (*tls.Config, error) {
 	}, nil
 }
 
+// sign host
 func signHost(ca tls.Certificate, hosts []string) (cert *tls.Certificate, err error) {
 	// Use the provided ca for certificate generation.
 	var x509ca *x509.Certificate
