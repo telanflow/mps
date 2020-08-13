@@ -9,7 +9,6 @@ MPS (middle-proxy-server) is an intermediate proxy service library.
 It support HTTP, HTTPS, Websocket, ForwardProxy, ReverseProxy, MitmProxy
 
 ## 🚀 Features
-
 - [X] Http Proxy
 - [X] Https Proxy
 - [X] Forward Proxy
@@ -20,11 +19,9 @@ It support HTTP, HTTPS, Websocket, ForwardProxy, ReverseProxy, MitmProxy
 - [ ] Socks5 Proxy
 
 ## 🧰 Install
-
 ```
 go get -u github.com/telanflow/mps
 ```
 
 ## 📄 License
-
 Source code in `MPS` is available under the [BSD 3 License](/LICENSE).
