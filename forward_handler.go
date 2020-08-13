@@ -1,10 +1,8 @@
 package mps
 
 import (
-	"bytes"
 	"github.com/telanflow/mps/pool"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 )
@@ -41,31 +39,13 @@ func (forward *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	bodyRes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		http.Error(rw, err.Error(), 502)
-		return
-	}
-	_ = resp.Body.Close()
-
-	// http.ResponseWriter will take care of filling the correct response length
-	// Setting it now, might impose wrong value, contradicting the actual new
-	// body the user returned.
-	// We keep the original body to remove the header only if things changed.
-	// This will prevent problems with HEAD requests where there's no body, yet,
-	// the Content-Length header should be set.
-	if resp.ContentLength != int64(len(bodyRes)) {
-		resp.Header.Del("Content-Length")
-	}
-
 	copyHeaders(rw.Header(), resp.Header, forward.Ctx.KeepDestinationHeaders)
 	rw.WriteHeader(resp.StatusCode)
 
-	body := ioutil.NopCloser(bytes.NewReader(bodyRes))
 	buf := forward.buffer().Get()
-	_, err = io.CopyBuffer(rw, body, buf)
+	_, err = io.CopyBuffer(rw, resp.Body, buf)
 	forward.buffer().Put(buf)
-	_ = body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
 		return

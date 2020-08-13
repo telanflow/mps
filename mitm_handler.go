@@ -172,8 +172,6 @@ func (mitm *MitmHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}
 
 			// Since we don't know the length of resp, return chunked encoded response
-			// TODO: use a more reasonable scheme
-			resp.Header.Del("Content-Length")
 			resp.Header.Set("Transfer-Encoding", "chunked")
 
 			// Force connection close otherwise chrome will keep CONNECT tunnel open forever
