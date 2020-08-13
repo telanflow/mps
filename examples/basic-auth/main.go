@@ -71,4 +71,3 @@ func main() {
 	body, _ := ioutil.ReadAll(resp.Body)
 	log.Println(string(body))
 }
-
