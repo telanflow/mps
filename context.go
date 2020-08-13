@@ -9,8 +9,14 @@ import (
 	"time"
 )
 
-// Http method not support
-var MethodNotSupportErr = errors.New("request method not support")
+var (
+	// http request is nil
+	RequestNilErr = errors.New("request is nil")
+	// http request method not support
+	MethodNotSupportErr = errors.New("request method not support")
+	// http request is websocket
+	RequestWebsocketUpgradeErr = errors.New("websocket upgrade")
+)
 
 // Context for the request
 // which contains Middleware, Transport, and other values
@@ -115,10 +121,17 @@ func (ctx *Context) Next(req *http.Request) (*http.Response, error) {
 		ctx.mi = -1
 		// Final request coverage
 		ctx.Request = req
+		if req == nil {
+			return nil, RequestNilErr
+		}
 		// To make the middleware available to the tunnel proxy,
 		// no response is obtained when the request method is equal to Connect
 		if req.Method == http.MethodConnect {
 			return nil, MethodNotSupportErr
+		}
+		// Is it a Websocket requests
+		if isWebSocketRequest(req) {
+			return nil, RequestWebsocketUpgradeErr
 		}
 		return ctx.RoundTrip(req)
 	}
