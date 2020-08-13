@@ -43,7 +43,7 @@ func NewTunnelHandlerWithContext(ctx *Context) *TunnelHandler {
 
 // Standard net/http function. You can use it alone
 func (tunnel *TunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// Execution middleware
+	// execution middleware
 	ctx := tunnel.Ctx.WithRequest(req)
 	resp, err := ctx.Next(req)
 	if err != nil && err != MethodNotSupportErr {

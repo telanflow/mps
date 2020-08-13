@@ -51,8 +51,32 @@ func NewMitmHandler() *MitmHandler {
 	}
 }
 
+// Create a MitmHandler, use default cert.
+func NewMitmHandlerWithContext(ctx *Context) *MitmHandler {
+	return &MitmHandler{
+		Ctx:           ctx,
+		BufferPool:    pool.DefaultBuffer,
+		Certificate:   cert.DefaultCertificate,
+		CertContainer: cert.NewMemProvider(),
+	}
+}
+
+// Create a MitmHandler with cert pem block
+func NewMitmHandlerWithCert(certPEMBlock, keyPEMBlock []byte) (*MitmHandler, error) {
+	certificate, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
+	if err != nil {
+		return nil, err
+	}
+	return &MitmHandler{
+		Ctx:           NewContext(),
+		BufferPool:    pool.DefaultBuffer,
+		Certificate:   certificate,
+		CertContainer: cert.NewMemProvider(),
+	}, nil
+}
+
 // Create a MitmHandler with cert file
-func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
+func NewMitmHandlerWithCertFile(certFile, keyFile string) (*MitmHandler, error) {
 	certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err
@@ -67,7 +91,7 @@ func NewMitmHandlerWithCert(certFile, keyFile string) (*MitmHandler, error) {
 
 // Standard net/http function. You can use it alone
 func (mitm *MitmHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	// Execution middleware
+	// execution middleware
 	ctx := mitm.Ctx.WithRequest(r)
 	resp, err := ctx.Next(r)
 	if err != nil && err != MethodNotSupportErr {

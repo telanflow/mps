@@ -113,6 +113,8 @@ func (ctx *Context) Next(req *http.Request) (*http.Response, error) {
 	ctx.mi++
 	if ctx.mi >= total {
 		ctx.mi = -1
+		// Final request coverage
+		ctx.Request = req
 		// To make the middleware available to the tunnel proxy,
 		// no response is obtained when the request method is equal to Connect
 		if req.Method == http.MethodConnect {

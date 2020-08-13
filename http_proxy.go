@@ -9,13 +9,13 @@ import (
 
 // The basic proxy type. Implements http.Handler.
 type HttpProxy struct {
-	// HTTPS requests use the TunnelHandler proxy by default
-	HttpsHandler http.Handler
+	// Handles Connect requests use the TunnelHandler by default
+	HandleConnect http.Handler
 
-	// HTTP requests use the ForwardHandler proxy by default
+	// HTTP requests use the ForwardHandler by default
 	HttpHandler http.Handler
 
-	// HTTP requests use the ReverseHandler proxy by default
+	// HTTP requests use the ReverseHandler by default
 	ReverseHandler http.Handler
 
 	// Client request Context
@@ -27,10 +27,10 @@ func NewHttpProxy() *HttpProxy {
 	ctx := NewContext()
 	return &HttpProxy{
 		Ctx: ctx,
-		// default HTTP proxy
+		// default handles Connect method
+		HandleConnect: &TunnelHandler{Ctx: ctx},
+		// default handles HTTP request
 		HttpHandler: &ForwardHandler{Ctx: ctx},
-		// default HTTPS proxy
-		HttpsHandler: &TunnelHandler{Ctx: ctx},
 		// default Reverse proxy
 		ReverseHandler: &ReverseHandler{Ctx: ctx},
 	}
@@ -39,10 +39,21 @@ func NewHttpProxy() *HttpProxy {
 // Standard net/http function.
 func (proxy *HttpProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodConnect {
-		proxy.HttpsHandler.ServeHTTP(rw, req)
+		proxy.HandleConnect.ServeHTTP(rw, req)
 		return
 	}
 
+	// reverse proxy http request for example:
+	//		GET / HTTP/1.1
+	//		Host: www.example.com
+	//		Connection: keep-alive
+	//
+	// forward proxy http request for example :
+	// 		GET http://www.example.com/ HTTP/1.1
+	// 		Host: www.example.com
+	// 		Proxy-Connection: keep-alive
+	//
+	// Determines whether the path is absolute
 	if !req.URL.IsAbs() {
 		proxy.ReverseHandler.ServeHTTP(rw, req)
 	} else {
