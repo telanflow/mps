@@ -17,7 +17,6 @@ MPS 是一个高性能的中间代理扩展库，支持 HTTP、HTTPS、Websocket
 - [X] 隧道代理
 - [X] 中间人代理 (MITM)
 - [X] WekSocket代理
-- [ ] Socks5代理
 
 ## 🧰 安装
 ```

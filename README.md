@@ -17,7 +17,6 @@ It's still under development.
 - [X] Tunnel Proxy
 - [X] Mitm Proxy (Man-in-the-middle) 
 - [X] WekSocket Proxy
-- [ ] Socks5 Proxy
 
 ## 🧰 Install
 ```
