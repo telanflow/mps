@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	HttpTunnelOk   = []byte("HTTP/1.0 200 OK\r\n\r\n")
+	HttpTunnelOk   = []byte("HTTP/1.0 200 Connection Established\r\n\r\n")
 	HttpTunnelFail = []byte("HTTP/1.1 502 Bad Gateway\r\n\r\n")
 	hasPort        = regexp.MustCompile(`:\d+$`)
 )
