@@ -18,8 +18,13 @@ func main() {
 	// create proxy server
 	proxy := mps.NewHttpProxy()
 
+	// Load cert file
 	// The Connect request is processed using MitmHandler
-	proxy.HandleConnect = mps.NewMitmHandlerWithContext(proxy.Ctx)
+	mitmHandler, err := mps.NewMitmHandlerWithCertFile(proxy.Ctx, "ca.crt", "ca.key")
+	if err != nil {
+		log.Panic(err)
+	}
+	proxy.HandleConnect = mitmHandler
 
 	// Middleware
 	proxy.UseFunc(func(req *http.Request, ctx *mps.Context) (*http.Response, error) {
