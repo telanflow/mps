@@ -19,6 +19,7 @@ type MemProvider struct {
 func NewMemProvider() *MemProvider {
 	return &MemProvider{
 		cache: make(map[string]*tls.Certificate),
+		rw: sync.RWMutex{},
 	}
 }
 
