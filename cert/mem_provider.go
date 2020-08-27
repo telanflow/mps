@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 var DefaultMemProvider = NewMemProvider()
@@ -11,6 +12,7 @@ var DefaultMemProvider = NewMemProvider()
 // MemProvider A simple in-memory certificate cache
 type MemProvider struct {
 	cache map[string]*tls.Certificate
+	rw sync.RWMutex
 }
 
 // Create a MemProvider
@@ -33,6 +35,8 @@ func (m *MemProvider) Get(host string) (cert *tls.Certificate, err error) {
 // Set the Host certificate to the cache
 func (m *MemProvider) Set(host string, cert *tls.Certificate) error {
 	host = strings.TrimSpace(host)
+	m.rw.Lock()
 	m.cache[host] = cert
+	m.rw.Unlock()
 	return nil
 }
