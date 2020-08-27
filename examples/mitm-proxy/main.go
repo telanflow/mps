@@ -20,7 +20,7 @@ func main() {
 
 	// Load cert file
 	// The Connect request is processed using MitmHandler
-	mitmHandler, err := mps.NewMitmHandlerWithCertFile(proxy.Ctx, "ca.crt", "ca.key")
+	mitmHandler, err := mps.NewMitmHandlerWithCertFile(proxy.Ctx, "./examples/mitm-proxy/ca.crt", "./examples/mitm-proxy/ca.key")
 	if err != nil {
 		log.Panic(err)
 	}
