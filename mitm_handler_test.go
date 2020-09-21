@@ -3,9 +3,9 @@ package mps
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/stretchr/testify/assert"
 	"github.com/telanflow/mps/cert"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,8 +13,8 @@ import (
 )
 
 func TestNewMitmHandler(t *testing.T) {
-	mitm := NewMitmHandler()
-	mitmSrv := httptest.NewServer(mitm)
+	mitmHandler := NewMitmHandler()
+	mitmSrv := httptest.NewServer(mitmHandler)
 	defer mitmSrv.Close()
 
 	clientCertPool := x509.NewCertPool()
@@ -43,7 +43,7 @@ func TestNewMitmHandler(t *testing.T) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	log.Println(err)
-	log.Println(resp.Status)
-	log.Println(string(body))
+	asserts := assert.New(t)
+	asserts.Equal(resp.StatusCode, 200, "response status code not equal 200")
+	asserts.Equal(int64(len(body)), resp.ContentLength)
 }

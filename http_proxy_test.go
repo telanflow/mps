@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"testing"
 )
 
@@ -74,9 +73,10 @@ func TestMiddlewareFunc(t *testing.T) {
 		buf.WriteString("middleware")
 		resp.Body = ioutil.NopCloser(&buf)
 
-		// You have to reset Content-Length, if you change the Body
-		resp.ContentLength = int64(buf.Len())
-		resp.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
+		//
+		// You have to reset Content-Length, if you change the Body.
+		//resp.ContentLength = int64(buf.Len())
+		//resp.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
 
 		return resp, nil
 	})
