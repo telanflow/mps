@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func NewTestServer() *httptest.Server {
+func newTestServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		query := req.URL.Query()
 		text := []byte("hello world")
@@ -32,7 +32,7 @@ func HttpGet(rawurl string, proxy func(r *http.Request) (*url.URL, error)) (*htt
 }
 
 func TestNewHttpProxy(t *testing.T) {
-	srv := NewTestServer()
+	srv := newTestServer()
 	defer srv.Close()
 
 	proxy := NewHttpProxy()
@@ -56,7 +56,7 @@ func TestNewHttpProxy(t *testing.T) {
 
 func TestMiddlewareFunc(t *testing.T) {
 	// target server
-	srv := NewTestServer()
+	srv := newTestServer()
 	defer srv.Close()
 
 	// proxy server

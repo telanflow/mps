@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewForwardHandler_ContentLength(t *testing.T) {
-	srv := NewTestServer()
+	srv := newTestServer()
 	defer srv.Close()
 
 	forwardHandler := NewForwardHandler()

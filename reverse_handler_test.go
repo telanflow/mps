@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewReverseHandler(t *testing.T) {
-	srv := NewTestServer()
+	srv := newTestServer()
 	defer srv.Close()
 
 	reverseHandler := NewReverseHandler()

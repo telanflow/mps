@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewTunnelHandler(t *testing.T) {
-	srv := NewTestServer()
+	srv := newTestServer()
 	defer srv.Close()
 
 	tunnel := NewTunnelHandler()
