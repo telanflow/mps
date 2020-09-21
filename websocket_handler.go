@@ -110,6 +110,11 @@ func (ws *WebsocketHandler) ConnectDial(network, addr string) (net.Conn, error) 
 	return net.DialTimeout(network, addr, 30*time.Second)
 }
 
+// Transport get http.Transport instance
+func (ws *WebsocketHandler) Transport() *http.Transport {
+	return ws.Ctx.Transport
+}
+
 // context returned a context.Context
 func (ws *WebsocketHandler) context() context.Context {
 	if ws.Ctx.Context != nil {
