@@ -34,6 +34,15 @@ func main() {
 			return nil, err
 		}
 		log.Printf("[INFO] resp -- %d", resp.StatusCode)
+
+		// You have to reset Content-Length, if you change the Body.
+
+		//var buf bytes.Buffer
+		//buf.WriteString("body changed")
+		//resp.Body = ioutil.NopCloser(&buf)
+		//resp.ContentLength = int64(buf.Len())
+		//resp.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
+
 		return resp, err
 	})
 

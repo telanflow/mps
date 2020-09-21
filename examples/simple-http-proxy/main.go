@@ -22,12 +22,14 @@ func main() {
 		return ctx.Next(req)
 	})
 
+	// Filter Request
 	reqGroup := proxy.OnRequest(mps.FilterHostMatches(regexp.MustCompile("^.*$")))
 	reqGroup.DoFunc(func(req *http.Request, ctx *mps.Context) (*http.Request, *http.Response) {
 		log.Printf("[INFO] req -- %s %s", req.Method, req.URL)
 		return req, nil
 	})
 
+	// Filter Response
 	respGroup := proxy.OnResponse()
 	respGroup.DoFunc(func(resp *http.Response, err error, ctx *mps.Context) (*http.Response, error) {
 		if err != nil {
@@ -36,6 +38,15 @@ func main() {
 		}
 
 		log.Printf("[INFO] resp -- %d", resp.StatusCode)
+
+		// You have to reset Content-Length, if you change the Body.
+
+		//var buf bytes.Buffer
+		//buf.WriteString("body changed")
+		//resp.Body = ioutil.NopCloser(&buf)
+		//resp.ContentLength = int64(buf.Len())
+		//resp.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
+
 		return resp, err
 	})
 
