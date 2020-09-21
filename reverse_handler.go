@@ -1,10 +1,12 @@
 package mps
 
 import (
+	"bytes"
 	"github.com/telanflow/mps/pool"
 	"io"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 )
 
 // ReverseHandler is a reverse proxy server implementation
@@ -30,18 +32,28 @@ func (reverse *ReverseHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 		http.Error(rw, err.Error(), 502)
 		return
 	}
+	defer resp.Body.Close()
 
-	copyHeaders(rw.Header(), resp.Header, reverse.Ctx.KeepDestinationHeaders)
-	rw.WriteHeader(resp.StatusCode)
+	var (
+		// Body buffer
+		buffer = new(bytes.Buffer)
+		// Body size
+		bufferSize int64
+	)
 
 	buf := reverse.buffer().Get()
-	_, err = io.CopyBuffer(rw, resp.Body, buf)
+	bufferSize, err = io.CopyBuffer(buffer, resp.Body, buf)
 	reverse.buffer().Put(buf)
-	_ = resp.Body.Close()
 	if err != nil {
 		http.Error(rw, err.Error(), 502)
 		return
 	}
+
+	resp.ContentLength = bufferSize
+	resp.Header.Set("Content-Length", strconv.Itoa(int(bufferSize)))
+	copyHeaders(rw.Header(), resp.Header, reverse.Ctx.KeepDestinationHeaders)
+	rw.WriteHeader(resp.StatusCode)
+	_, err = buffer.WriteTo(rw)
 }
 
 // Use registers an Middleware to proxy

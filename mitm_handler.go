@@ -2,6 +2,7 @@ package mps
 
 import (
 	"bufio"
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -14,6 +15,7 @@ import (
 	"github.com/telanflow/mps/cert"
 	"github.com/telanflow/mps/pool"
 	"io"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"net"
@@ -164,51 +166,27 @@ func (mitm *MitmHandler) transmit(clientConn net.Conn, originalReq *http.Request
 			return
 		}
 
-		status := resp.Status
-		statusCode := strconv.Itoa(resp.StatusCode) + " "
-		if strings.HasPrefix(status, statusCode) {
-			status = status[len(statusCode):]
-		}
-
-		// always use 1.1 to support chunked encoding
-		if _, err := io.WriteString(rawClientTls, "HTTP/1.1"+" "+statusCode+status+"\r\n"); err != nil {
-			return
-		}
-
-		// Since we don't know the length of resp, return chunked encoded response
-		resp.Header.Set("Transfer-Encoding", "chunked")
-
-		// Force connection close otherwise chrome will keep CONNECT tunnel open forever
-		resp.Header.Set("Connection", "close")
-
-		err = resp.Header.Write(rawClientTls)
-		if err != nil {
-			resp.Body.Close()
-			return
-		}
-		_, err = io.WriteString(rawClientTls, "\r\n")
-		if err != nil {
-			resp.Body.Close()
-			return
-		}
-
-		chunked := newChunkedWriter(rawClientTls)
+		var (
+			// Body buffer
+			buffer = new(bytes.Buffer)
+			// Body size
+			bufferSize int64
+		)
 
 		buf := mitm.buffer().Get()
-		_, err = io.CopyBuffer(chunked, resp.Body, buf)
+		bufferSize, err = io.CopyBuffer(buffer, resp.Body, buf)
 		mitm.buffer().Put(buf)
 		if err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return
 		}
-
-		// closed response body
 		resp.Body.Close()
 
-		if err := chunked.Close(); err != nil {
-			return
-		}
-		if _, err = io.WriteString(rawClientTls, "\r\n"); err != nil {
+		resp.ContentLength = bufferSize
+		resp.Header.Set("Content-Length", strconv.Itoa(int(bufferSize)))
+		resp.Body = ioutil.NopCloser(buffer)
+		err = resp.Write(rawClientTls)
+		if err != nil {
 			return
 		}
 	}
