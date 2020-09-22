@@ -5,9 +5,13 @@
 [English](README.md) | 🇨🇳中文
 
 ## 📖 介绍
-MPS 是一个高性能的中间代理扩展库，支持 HTTP、HTTPS、Websocket、正向代理、反向代理、中间人等代理方式。
+![MPS](https://github.com/telanflow/mps/workflows/MPS/badge.svg)
+![stars](https://img.shields.io/github/stars/telanflow/mps)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/telanflow/mps)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/telanflow/mps)
+[![license](https://img.shields.io/github/license/telanflow/mps)](https://github.com/telanflow/mps/LICENSE)
 
-它还在开发中。
+MPS 是一个高性能的中间代理扩展库，支持 HTTP、HTTPS、Websocket、正向代理、反向代理、隧道代理、中间人代理 等代理方式。
 
 ## 🚀 特性
 - [X] Http代理

@@ -11,9 +11,7 @@ English | [🇨🇳中文](README_ZH.md)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/telanflow/mps)
 [![license](https://img.shields.io/github/license/telanflow/mps)](https://github.com/telanflow/mps/LICENSE)
 
-MPS (middle-proxy-server) is an high-performance middle proxy library. support HTTP, HTTPS, Websocket, ForwardProxy, ReverseProxy, MitmProxy.
-
-It's still under development.
+MPS (middle-proxy-server) is an high-performance middle proxy library. support HTTP, HTTPS, Websocket, ForwardProxy, ReverseProxy, TunnelProxy, MitmProxy.
 
 ## 🚀 Features
 - [X] Http Proxy
