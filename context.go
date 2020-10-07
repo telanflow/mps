@@ -169,7 +169,7 @@ func (ctx *Context) RoundTrip(req *http.Request) (*http.Response, error) {
 // WithRequest get the Context of the request
 func (ctx *Context) WithRequest(req *http.Request) *Context {
 	return &Context{
-		Context:                context.Background(),
+		Context:                ctx.Context,
 		Request:                req,
 		Response:               nil,
 		KeepProxyHeaders:       ctx.KeepProxyHeaders,
