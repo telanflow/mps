@@ -18,14 +18,14 @@ var (
 	hasPort        = regexp.MustCompile(`:\d+$`)
 )
 
-// The tunnel proxy type. Implements http.Handler.
+// TunnelHandler The tunnel proxy type. Implements http.Handler.
 type TunnelHandler struct {
 	Ctx           *Context
 	BufferPool    httputil.BufferPool
 	ConnContainer pool.ConnContainer
 }
 
-// Create a tunnel handler
+// NewTunnelHandler Create a tunnel handler
 func NewTunnelHandler() *TunnelHandler {
 	return &TunnelHandler{
 		Ctx:        NewContext(),
@@ -33,7 +33,7 @@ func NewTunnelHandler() *TunnelHandler {
 	}
 }
 
-// Create a tunnel handler with Context
+// NewTunnelHandlerWithContext Create a tunnel handler with Context
 func NewTunnelHandlerWithContext(ctx *Context) *TunnelHandler {
 	return &TunnelHandler{
 		Ctx:        ctx,

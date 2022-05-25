@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-// The websocket proxy type. Implements http.Handler.
+// WebsocketHandler The websocket proxy type. Implements http.Handler.
 type WebsocketHandler struct {
 	Ctx        *Context
 	BufferPool httputil.BufferPool
 }
 
-// Create a websocket handler
+// NewWebsocketHandler Create a websocket handler
 func NewWebsocketHandler() *WebsocketHandler {
 	return &WebsocketHandler{
 		Ctx:        NewContext(),
@@ -27,7 +27,7 @@ func NewWebsocketHandler() *WebsocketHandler {
 	}
 }
 
-// Create a tunnel handler with Context
+// NewWebsocketHandlerWithContext Create a tunnel handler with Context
 func NewWebsocketHandlerWithContext(ctx *Context) *WebsocketHandler {
 	return &WebsocketHandler{
 		Ctx:        ctx,

@@ -9,13 +9,13 @@ import (
 	"strconv"
 )
 
-// The forward proxy type. Implements http.Handler.
+// ForwardHandler The forward proxy type. Implements http.Handler.
 type ForwardHandler struct {
 	Ctx        *Context
 	BufferPool httputil.BufferPool
 }
 
-// Create a ForwardHandler
+// NewForwardHandler Create a forward proxy
 func NewForwardHandler() *ForwardHandler {
 	return &ForwardHandler{
 		Ctx:        NewContext(),
@@ -23,7 +23,7 @@ func NewForwardHandler() *ForwardHandler {
 	}
 }
 
-// Create a ForwardHandler with Context
+// NewForwardHandlerWithContext Create a ForwardHandler with Context
 func NewForwardHandlerWithContext(ctx *Context) *ForwardHandler {
 	return &ForwardHandler{
 		Ctx:        ctx,

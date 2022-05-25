@@ -45,7 +45,7 @@ func main() {
 }
 ```
 
-More [examples](https://github.com/telanflow/mps/tree/master/examples)
+More [examples](https://github.com/telanflow/mps/tree/master/_examples)
 
 ## 🧬 Middleware
 Middleware can intercept requests and responses. 

@@ -45,7 +45,7 @@ func main() {
 }
 ```
 
-更多 [范例](https://github.com/telanflow/mps/tree/master/examples)
+更多 [范例](https://github.com/telanflow/mps/tree/master/_examples)
 
 ## 🧬 中间件
 中间件可以拦截请求和响应，我们内置实现了多个中间件，包括 [BasicAuth](https://github.com/telanflow/mps/tree/master/middleware)

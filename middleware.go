@@ -4,7 +4,7 @@ import "net/http"
 
 // Middleware will "tamper" with the request coming to the proxy server
 type Middleware interface {
-	// Execute the next middleware as a linked list. "ctx.Next(req)"
+	// Handle execute the next middleware as a linked list. "ctx.Next(req)"
 	// eg:
 	// 		func Handle(req *http.Request, ctx *Context) (*http.Response, error) {
 	//				// You can do anything to modify the http.Request ...
@@ -18,10 +18,10 @@ type Middleware interface {
 	Handle(req *http.Request, ctx *Context) (*http.Response, error)
 }
 
-// A wrapper that would convert a function to a Middleware interface type
+// MiddlewareFunc A wrapper that would convert a function to a Middleware interface type
 type MiddlewareFunc func(req *http.Request, ctx *Context) (*http.Response, error)
 
-// Middleware.Handle(req, ctx) <=> MiddlewareFunc(req, ctx)
+// Handle Middleware.Handle(req, ctx) <=> MiddlewareFunc(req, ctx)
 func (f MiddlewareFunc) Handle(req *http.Request, ctx *Context) (*http.Response, error) {
 	return f(req, ctx)
 }

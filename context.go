@@ -52,7 +52,7 @@ type Context struct {
 	middlewares []Middleware
 }
 
-// Create a Context
+// NewContext create http request Context
 func NewContext() *Context {
 	return &Context{
 		Context: context.Background(),

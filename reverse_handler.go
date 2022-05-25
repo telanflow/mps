@@ -15,7 +15,7 @@ type ReverseHandler struct {
 	BufferPool httputil.BufferPool
 }
 
-// Create a ReverseHandler
+// NewReverseHandler Create a reverse proxy
 func NewReverseHandler() *ReverseHandler {
 	return &ReverseHandler{
 		Ctx:        NewContext(),

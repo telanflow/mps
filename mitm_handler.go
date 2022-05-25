@@ -34,7 +34,7 @@ var (
 	httpsRegexp = regexp.MustCompile("^https://")
 )
 
-// The Man-in-the-middle proxy type. Implements http.Handler.
+// MitmHandler The Man-in-the-middle proxy type. Implements http.Handler.
 type MitmHandler struct {
 	Ctx         *Context
 	BufferPool  httputil.BufferPool
@@ -43,7 +43,7 @@ type MitmHandler struct {
 	CertContainer cert.Container
 }
 
-// Create a MitmHandler, use default cert.
+// NewMitmHandler Create a mitmHandler, use default cert.
 func NewMitmHandler() *MitmHandler {
 	return &MitmHandler{
 		Ctx:           NewContext(),
@@ -53,7 +53,7 @@ func NewMitmHandler() *MitmHandler {
 	}
 }
 
-// Create a MitmHandler, use default cert.
+// NewMitmHandlerWithContext Create a MitmHandler, use default cert.
 func NewMitmHandlerWithContext(ctx *Context) *MitmHandler {
 	return &MitmHandler{
 		Ctx:           ctx,
@@ -63,7 +63,7 @@ func NewMitmHandlerWithContext(ctx *Context) *MitmHandler {
 	}
 }
 
-// Create a MitmHandler with cert pem block
+// NewMitmHandlerWithCert Create a MitmHandler with cert pem block
 func NewMitmHandlerWithCert(ctx *Context, certPEMBlock, keyPEMBlock []byte) (*MitmHandler, error) {
 	certificate, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 	if err != nil {
@@ -77,7 +77,7 @@ func NewMitmHandlerWithCert(ctx *Context, certPEMBlock, keyPEMBlock []byte) (*Mi
 	}, nil
 }
 
-// Create a MitmHandler with cert file
+// NewMitmHandlerWithCertFile Create a MitmHandler with cert file
 func NewMitmHandlerWithCertFile(ctx *Context, certFile, keyFile string) (*MitmHandler, error) {
 	certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -180,8 +180,9 @@ func (mitm *MitmHandler) transmit(clientConn net.Conn, originalReq *http.Request
 			_ = resp.Body.Close()
 			return
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
+		// reset Content-Length
 		resp.ContentLength = bufferSize
 		resp.Header.Set("Content-Length", strconv.Itoa(int(bufferSize)))
 		resp.Body = ioutil.NopCloser(buffer)
@@ -192,7 +193,7 @@ func (mitm *MitmHandler) transmit(clientConn net.Conn, originalReq *http.Request
 	}
 }
 
-// Use registers an Middleware to proxy
+// Use registers a Middleware to proxy
 func (mitm *MitmHandler) Use(middleware ...Middleware) {
 	mitm.Ctx.Use(middleware...)
 }
@@ -328,9 +329,23 @@ func signHost(ca tls.Certificate, hosts []string) (cert *tls.Certificate, err er
 }
 
 func stripPort(s string) string {
-	ix := strings.IndexRune(s, ':')
-	if ix == -1 {
-		return s
+	var ix int
+	if strings.Contains(s, "[") && strings.Contains(s, "]") {
+		// ipv6 : for example : [2606:4700:4700::1111]:443
+		// strip '[' and ']'
+		s = strings.ReplaceAll(s, "[", "")
+		s = strings.ReplaceAll(s, "]", "")
+
+		ix = strings.LastIndexAny(s, ":")
+		if ix == -1 {
+			return s
+		}
+	} else {
+		//ipv4
+		ix = strings.IndexRune(s, ':')
+		if ix == -1 {
+			return s
+		}
 	}
 	return s[:ix]
 }

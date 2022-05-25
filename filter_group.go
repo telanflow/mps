@@ -6,7 +6,7 @@ type FilterGroup interface {
 	Handle()
 }
 
-// ReqCondition is a request filter group
+// ReqFilterGroup ReqCondition is a request filter group
 type ReqFilterGroup struct {
 	ctx     *Context
 	filters []Filter
@@ -34,7 +34,7 @@ func (cond *ReqFilterGroup) Do(h RequestHandle) {
 	})
 }
 
-// ReqCondition is a response filter group
+// RespFilterGroup ReqCondition is a response filter group
 type RespFilterGroup struct {
 	ctx     *Context
 	filters []Filter
