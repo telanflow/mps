@@ -11,11 +11,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
-	"github.com/telanflow/mps/cert"
-	"github.com/telanflow/mps/pool"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"net"
@@ -27,6 +25,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/telanflow/mps/cert"
+	"github.com/telanflow/mps/pool"
 )
 
 var (
@@ -96,7 +97,7 @@ func (mitm *MitmHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// execution middleware
 	ctx := mitm.Ctx.WithRequest(req)
 	resp, err := ctx.Next(req)
-	if err != nil && err != MethodNotSupportErr {
+	if err != nil && !errors.Is(err, MethodNotSupportErr) {
 		if resp != nil {
 			copyHeaders(rw.Header(), resp.Header, mitm.Ctx.KeepDestinationHeaders)
 			rw.WriteHeader(resp.StatusCode)
@@ -185,7 +186,7 @@ func (mitm *MitmHandler) transmit(clientConn net.Conn, originalReq *http.Request
 		// reset Content-Length
 		resp.ContentLength = bufferSize
 		resp.Header.Set("Content-Length", strconv.Itoa(int(bufferSize)))
-		resp.Body = ioutil.NopCloser(buffer)
+		resp.Body = io.NopCloser(buffer)
 		err = resp.Write(rawClientTls)
 		if err != nil {
 			return

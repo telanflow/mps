@@ -15,7 +15,7 @@ for example:
 ```go
 func main() {
     // Load ca.crt file
-    certPEMBlock, err := ioutil.ReadFile("ca.crt")
+    certPEMBlock, err := os.ReadFile("ca.crt")
     if err != nil {
         panic("failed to load ca.crt file")
     }

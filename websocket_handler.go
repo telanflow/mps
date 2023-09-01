@@ -3,7 +3,6 @@ package mps
 import (
 	"bufio"
 	"context"
-	"github.com/telanflow/mps/pool"
 	"io"
 	"net"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/telanflow/mps/pool"
 )
 
 // WebsocketHandler The websocket proxy type. Implements http.Handler.

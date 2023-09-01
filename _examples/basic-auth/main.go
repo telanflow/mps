@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/telanflow/mps"
-	"github.com/telanflow/mps/middleware"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/telanflow/mps"
+	"github.com/telanflow/mps/middleware"
 )
 
 // A simple BasicAuth example
@@ -68,6 +69,6 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	log.Println(string(body))
 }

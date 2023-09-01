@@ -2,12 +2,13 @@ package mps
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func newTestServer() *httptest.Server {
@@ -46,7 +47,7 @@ func TestNewHttpProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	asserts := assert.New(t)
@@ -71,7 +72,7 @@ func TestMiddlewareFunc(t *testing.T) {
 
 		var buf bytes.Buffer
 		buf.WriteString("middleware")
-		resp.Body = ioutil.NopCloser(&buf)
+		resp.Body = io.NopCloser(&buf)
 
 		//
 		// You have to reset Content-Length, if you change the Body.
@@ -91,7 +92,7 @@ func TestMiddlewareFunc(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	asserts := assert.New(t)

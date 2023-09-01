@@ -2,7 +2,6 @@ package mps
 
 import (
 	"context"
-	"github.com/telanflow/mps/pool"
 	"io"
 	"net"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"net/url"
 	"regexp"
 	"time"
+
+	"github.com/telanflow/mps/pool"
 )
 
 var (

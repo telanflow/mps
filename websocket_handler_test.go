@@ -1,13 +1,14 @@
 package mps
 
 import (
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{}

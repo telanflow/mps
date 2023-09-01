@@ -1,11 +1,12 @@
 package mps
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTunnelHandler(t *testing.T) {

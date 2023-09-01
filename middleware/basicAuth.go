@@ -3,10 +3,11 @@ package middleware
 import (
 	"bytes"
 	"encoding/base64"
-	"github.com/telanflow/mps"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
+
+	"github.com/telanflow/mps"
 )
 
 // proxy Authorization header
@@ -88,7 +89,7 @@ func BasicUnauthorized(req *http.Request, realm string) *http.Response {
 			"Proxy-Authenticate": []string{"Basic realm=" + realm},
 			"Proxy-Connection":   []string{"close"},
 		},
-		Body:          ioutil.NopCloser(bytes.NewBuffer([]byte(unauthorizedMsg))),
+		Body:          io.NopCloser(bytes.NewBuffer([]byte(unauthorizedMsg))),
 		ContentLength: int64(len(unauthorizedMsg)),
 	}
 }

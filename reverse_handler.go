@@ -2,11 +2,12 @@ package mps
 
 import (
 	"bytes"
-	"github.com/telanflow/mps/pool"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
+
+	"github.com/telanflow/mps/pool"
 )
 
 // ReverseHandler is a reverse proxy server implementation

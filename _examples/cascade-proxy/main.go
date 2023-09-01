@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/telanflow/mps"
-	"github.com/telanflow/mps/middleware"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/telanflow/mps"
+	"github.com/telanflow/mps/middleware"
 )
 
 // A simple example of cascading proxy.
@@ -56,7 +57,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	log.Println(resp.Header)
