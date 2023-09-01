@@ -101,12 +101,13 @@ func (ctx *Context) UseFunc(fns ...MiddlewareFunc) {
 // Next to exec middlewares
 // Execute the next middleware as a linked list. "ctx.Next(req)"
 // eg:
-// 		func Handle(req *http.Request, ctx *Context) (*http.Response, error) {
-//				// You can do anything to modify the http.Request ...
-// 				resp, err := ctx.Next(req)
-// 				// You can do anything to modify the http.Response ...
-//				return resp, err
-// 		}
+//
+//	func Handle(req *http.Request, ctx *Context) (*http.Response, error) {
+//			// You can do anything to modify the http.Request ...
+//			resp, err := ctx.Next(req)
+//			// You can do anything to modify the http.Response ...
+//			return resp, err
+//	}
 //
 // Alternatively, you can simply return the response without executing `ctx.Next()`,
 // which will interrupt subsequent middleware execution.
@@ -132,7 +133,13 @@ func (ctx *Context) Next(req *http.Request) (*http.Response, error) {
 		if isWebSocketRequest(req) {
 			return nil, RequestWebsocketUpgradeErr
 		}
-		return ctx.RoundTrip(req)
+
+		return func() (*http.Response, error) {
+			// explicitly discard request body to avoid data races in certain RoundTripper implementations
+			// see https://github.com/golang/go/issues/61596#issuecomment-1652345131
+			defer req.Body.Close()
+			return ctx.RoundTrip(req)
+		}()
 	}
 
 	middleware := ctx.middlewares[ctx.mi]
