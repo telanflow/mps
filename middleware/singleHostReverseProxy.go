@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"github.com/telanflow/mps"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/telanflow/mps"
 )
 
 // SingleHostReverseProxy returns a mps.Middleware

@@ -2,14 +2,15 @@ package main
 
 import (
 	"errors"
-	"github.com/telanflow/mps"
-	"github.com/telanflow/mps/middleware"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/telanflow/mps"
+	"github.com/telanflow/mps/middleware"
 )
 
 // A simple reverse proxy server

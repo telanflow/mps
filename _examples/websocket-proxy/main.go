@@ -2,18 +2,19 @@ package main
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
-	"github.com/telanflow/mps"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/gorilla/websocket"
+	"github.com/telanflow/mps"
 )
 
 var (
-	upgrader = websocket.Upgrader{}
+	upgrader     = websocket.Upgrader{}
 	endPointAddr = "localhost:9990"
 )
 
@@ -73,4 +74,3 @@ func main() {
 	_ = srv.Close()
 	log.Fatal("WebsocketProxy server stop!")
 }
-

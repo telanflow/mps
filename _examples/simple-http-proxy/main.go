@@ -2,13 +2,14 @@ package main
 
 import (
 	"errors"
-	"github.com/telanflow/mps"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
 	"syscall"
+
+	"github.com/telanflow/mps"
 )
 
 // A simple http proxy server
