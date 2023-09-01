@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -272,6 +271,9 @@ func signHost(ca tls.Certificate, hosts []string) (cert *tls.Certificate, err er
 		return
 	}
 
+	start := time.Unix(time.Now().Unix()-2592000, 0) // 2592000  = 30 day
+	end := time.Unix(time.Now().Unix()+31536000, 0)  // 31536000 = 365 day
+
 	var random CounterEncryptorRand
 	random, err = NewCounterEncryptorRand(ca.PrivateKey, hashHosts(hosts))
 	if err != nil {
@@ -292,14 +294,15 @@ func signHost(ca tls.Certificate, hosts []string) (cert *tls.Certificate, err er
 	}
 
 	// certificate template
+	serial := big.NewInt(mpsRand.Int63())
 	tpl := x509.Certificate{
-		SerialNumber: big.NewInt(rand.Int63()),
+		SerialNumber: serial,
 		Issuer:       x509ca.Subject,
 		Subject: pkix.Name{
 			Organization: []string{"MPS untrusted MITM proxy Inc"},
 		},
-		NotBefore:             time.Unix(0, 0),
-		NotAfter:              time.Now().AddDate(20, 0, 0),
+		NotBefore:             start,
+		NotAfter:              end,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
